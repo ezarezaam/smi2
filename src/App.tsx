@@ -3,12 +3,13 @@ import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import Dashboard from './components/Dashboard/Dashboard';
 import ProductManagement from './components/Products/ProductManagement';
+import ServiceManagement from './components/Services/ServiceManagement';
 import SalesTransaction from './components/Sales/SalesTransaction';
 import PaymentTracking from './components/Payments/PaymentTracking';
 import FinancialReports from './components/Reports/FinancialReports';
 import ProcurementManagement from './components/Procurement/ProcurementManagement';
 
-type View = 'dashboard' | 'products' | 'sales' | 'payments' | 'reports' | 'procurement';
+type View = 'dashboard' | 'products' | 'services' | 'sales' | 'payments' | 'reports' | 'procurement';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -20,6 +21,8 @@ function App() {
         return <Dashboard />;
       case 'products':
         return <ProductManagement />;
+      case 'services':
+        return <ServiceManagement />;
       case 'sales':
         return <SalesTransaction />;
       case 'payments':

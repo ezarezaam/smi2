@@ -11,6 +11,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setSidebarOpen }) => {
     const titles = {
       dashboard: 'Dashboard',
       products: 'Manajemen Produk',
+      services: 'Manajemen Layanan',
       sales: 'Transaksi Penjualan',
       payments: 'Tracking Pembayaran',
       reports: 'Laporan Keuangan',

@@ -6,10 +6,11 @@ import {
   CreditCard, 
   FileText, 
   Truck,
+  Settings,
   X
 } from 'lucide-react';
 
-type View = 'dashboard' | 'products' | 'sales' | 'payments' | 'reports' | 'procurement';
+type View = 'dashboard' | 'products' | 'services' | 'sales' | 'payments' | 'reports' | 'procurement';
 
 interface SidebarProps {
   currentView: View;
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Manajemen Produk', icon: Package },
+    { id: 'services', label: 'Manajemen Layanan', icon: Settings },
     { id: 'sales', label: 'Transaksi Penjualan', icon: ShoppingCart },
     { id: 'payments', label: 'Tracking Pembayaran', icon: CreditCard },
     { id: 'procurement', label: 'Pembelian', icon: Truck },
