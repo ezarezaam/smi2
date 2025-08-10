@@ -30,6 +30,7 @@ import JabatanPage from './pages/JabatanPage';
 import BillsPage from './pages/BillsPage';
 import RefundsPage from './pages/RefundsPage';
 import VendorPaymentPage from './pages/VendorPaymentPage';
+import PurchaseReceiptPage from './pages/PurchaseReceiptPage';
 import CreditNotePage from './pages/CreditNotePage';
 import CustomerInvoicePage from './pages/CustomerInvoicePage';
 import CustomerPaymentPage from './pages/CustomerPaymentPage';
@@ -93,6 +94,7 @@ function App() {
             <Route path="bills" element={<BillsPage />} />
             <Route path="refunds" element={<RefundsPage />} />
             <Route path="vendor-invoice" element={<VendorPaymentPage />} />
+            <Route path="purchase-receipt" element={<PurchaseReceiptPage />} />
             
             {/* Customer Routes */}
             <Route path="credit-note" element={<CreditNotePage />} />

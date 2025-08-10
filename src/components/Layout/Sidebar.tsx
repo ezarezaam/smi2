@@ -56,6 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       submenu: [
         { id: 'daftar-vendor', path: '/vendors', label: 'Daftar vendor' },
         { id: 'purchase-order', path: '/purchase-order', label: 'Purchase order' },
+        { id: 'purchase-receipt', path: '/purchase-receipt', label: 'Purchase receipt' },
         { id: 'bills', path: '/bills', label: 'Bills' },
         { id: 'refunds', path: '/refunds', label: 'Refunds' },
         { id: 'vendor-payment', path: '/vendor-invoice', label: 'Payment' },

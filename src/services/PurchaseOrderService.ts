@@ -351,6 +351,16 @@ export const PurchaseOrderService = {
     return `PO-${year}${month}${day}-${random}`;
   },
   
+  // Soft delete purchase order
+  async delete(id: string): Promise<{ error: any }> {
+    const { error } = await supabase
+      .from('purchase_orders')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    
+    return { error };
+  },
+  
   // Update status purchase order menjadi received
   async markAsReceived(id: string, receivedDate: string | Date): Promise<{ data: PurchaseOrder | null, error: any }> {
     const { error } = await supabase

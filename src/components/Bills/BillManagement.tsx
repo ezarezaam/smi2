@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, Calendar, DollarSign } from '../icons';
 import { Bill, BILL_STATUS, PAYMENT_STATUS } from '../../models/Bill';
+import { BillService } from '../../services/BillService';
+import { PurchaseOrderService } from '../../services/PurchaseOrderService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { toast } from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 
 const BillManagement: React.FC = () => {
+  const location = useLocation();
+  const purchaseOrderId = location.state?.purchaseOrderId;
+  
   const [bills, setBills] = useState<Bill[]>([]);
+  const [availablePOs, setAvailablePOs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -14,41 +21,15 @@ const BillManagement: React.FC = () => {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sample data
-  const sampleBills: Bill[] = [
-    {
-      id: '1',
-      bill_number: 'BILL-001',
-      vendor_id: '1',
-      vendor: { name: 'PT Supplier Utama' },
-      bill_date: '2025-01-15',
-      due_date: '2025-02-15',
-      total_amount: 5000000,
-      paid_amount: 2000000,
-      status: 'pending',
-      payment_status: 'partial',
-      notes: 'Pembelian bahan baku'
-    },
-    {
-      id: '2',
-      bill_number: 'BILL-002',
-      vendor_id: '2',
-      vendor: { name: 'CV Mitra Sejati' },
-      bill_date: '2025-01-10',
-      due_date: '2025-02-10',
-      total_amount: 3500000,
-      paid_amount: 3500000,
-      status: 'paid',
-      payment_status: 'paid',
-      notes: 'Pembelian alat tulis'
-    }
-  ];
-
   const [formData, setFormData] = useState<Bill>({
-    bill_number: '',
+    bill_number: BillService.generateBillNumber(),
+    purchase_order_id: purchaseOrderId || '',
     vendor_id: '',
     bill_date: new Date().toISOString().split('T')[0],
     due_date: '',
+    subtotal_amount: 0,
+    tax_amount: 0,
+    discount_amount: 0,
     total_amount: 0,
     paid_amount: 0,
     status: 'draft',
@@ -57,9 +38,63 @@ const BillManagement: React.FC = () => {
   });
 
   useEffect(() => {
-    setBills(sampleBills);
+    loadBills();
+    loadAvailablePOs();
+    
+    // If coming from PO detail, auto-select the PO
+    if (purchaseOrderId) {
+      handleCreateFromPO(purchaseOrderId);
+    }
   }, []);
 
+  const loadBills = async () => {
+    try {
+      const { data, error } = await BillService.getAll();
+      if (error) throw error;
+      setBills(data || []);
+    } catch (error: any) {
+      toast.error('Gagal memuat data bill: ' + error.message);
+    }
+  };
+
+  const loadAvailablePOs = async () => {
+    try {
+      const { data, error } = await PurchaseOrderService.getAll();
+      if (error) throw error;
+      // Filter PO yang sudah received dan belum fully billed
+      const available = (data || []).filter(po => 
+        po.received_status !== 'pending' && po.billed_status !== 'fully_billed'
+      );
+      setAvailablePOs(available);
+    } catch (error: any) {
+      toast.error('Gagal memuat data PO: ' + error.message);
+    }
+  };
+
+  const handleCreateFromPO = async (poId: string) => {
+    try {
+      const { data, error } = await PurchaseOrderService.getById(poId);
+      if (error) throw error;
+      
+      if (data) {
+        // Calculate total from received items
+        const receivedItems = (data.items || []).filter(item => (item.received_quantity || 0) > 0);
+        const subtotal = receivedItems.reduce((sum, item) => 
+          sum + ((item.received_quantity || 0) * item.unit_price), 0
+        );
+        
+        setFormData(prev => ({
+          ...prev,
+          purchase_order_id: poId,
+          vendor_id: data.contacts_id || '',
+          subtotal_amount: subtotal,
+          total_amount: subtotal
+        }));
+      }
+    } catch (error: any) {
+      toast.error('Gagal memuat data PO: ' + error.message);
+    }
+  };
   const filteredBills = bills.filter(bill => {
     const matchesSearch = bill.bill_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          bill.vendor?.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -69,7 +104,8 @@ const BillManagement: React.FC = () => {
 
   const handleAdd = () => {
     setFormData({
-      bill_number: `BILL-${String(bills.length + 1).padStart(3, '0')}`,
+      bill_number: BillService.generateBillNumber(),
+      purchase_order_id: '',
       vendor_id: '',
       bill_date: new Date().toISOString().split('T')[0],
       due_date: '',
@@ -95,16 +131,37 @@ const BillManagement: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedBill) {
-      setBills(bills.map(b => b.id === selectedBill.id ? { ...formData, id: selectedBill.id } : b));
-      toast.success('Bill berhasil diperbarui');
-    } else {
-      setBills([...bills, { ...formData, id: String(bills.length + 1) }]);
-      toast.success('Bill berhasil ditambahkan');
+    
+    const submitBill = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (selectedBill?.id) {
+          const { error } = await BillService.update(selectedBill.id, formData);
+          if (error) throw error;
+          toast.success('Bill berhasil diperbarui');
+        } else {
+          const { error } = await BillService.createFromPurchaseOrder(
+            formData.purchase_order_id || '', 
+            formData
+          );
+          if (error) throw error;
+          toast.success('Bill berhasil ditambahkan');
+        }
+        
+        setShowAddModal(false);
+        setShowEditModal(false);
+        setSelectedBill(null);
+        loadBills();
+      } catch (error: any) {
+        toast.error('Gagal menyimpan bill: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    submitBill();
     }
-    setShowAddModal(false);
-    setShowEditModal(false);
-    setSelectedBill(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -239,17 +296,37 @@ const BillManagement: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Purchase Order
+                  </label>
+                  <select
+                    value={formData.purchase_order_id}
+                    onChange={(e) => {
+                      setFormData({...formData, purchase_order_id: e.target.value});
+                      if (e.target.value) {
+                        handleCreateFromPO(e.target.value);
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  >
+                    <option value="">Select Purchase Order</option>
+                    {availablePOs.map(po => (
+                      <option key={po.id} value={po.id}>
+                        {po.order_number} - {po.contact?.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Vendor
                   </label>
                   <select
                     value={formData.vendor_id}
                     onChange={(e) => setFormData({...formData, vendor_id: e.target.value})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    required
+                    disabled={!!formData.purchase_order_id}
                   >
                     <option value="">Select Vendor</option>
-                    <option value="1">PT Supplier Utama</option>
-                    <option value="2">CV Mitra Sejati</option>
                   </select>
                 </div>
                 <div>
@@ -284,7 +361,7 @@ const BillManagement: React.FC = () => {
                     value={formData.total_amount}
                     onChange={(e) => setFormData({...formData, total_amount: Number(e.target.value)})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    required
+                    readOnly={!!formData.purchase_order_id}
                   />
                 </div>
                 <div>
@@ -326,9 +403,10 @@ const BillManagement: React.FC = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={isLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  Save
+                  {isLoading ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>
