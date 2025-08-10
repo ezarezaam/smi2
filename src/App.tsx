@@ -27,6 +27,17 @@ import CustomerPage from './pages/CustomerPage';
 import EmployeePage from './pages/EmployeePage';
 import DivisiPage from './pages/DivisiPage';
 import JabatanPage from './pages/JabatanPage';
+import BillsPage from './pages/BillsPage';
+import RefundsPage from './pages/RefundsPage';
+import VendorPaymentPage from './pages/VendorPaymentPage';
+import CreditNotePage from './pages/CreditNotePage';
+import CustomerInvoicePage from './pages/CustomerInvoicePage';
+import CustomerPaymentPage from './pages/CustomerPaymentPage';
+import SalariesPage from './pages/SalariesPage';
+import LoanPage from './pages/LoanPage';
+import JournalEntriesPage from './pages/JournalEntriesPage';
+import JournalItemsPage from './pages/JournalItemsPage';
+import GeneralLedgerPage from './pages/GeneralLedgerPage';
 
 // Komponen untuk proteksi rute - DINONAKTIFKAN UNTUK DEVELOPMENT
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -77,6 +88,25 @@ function App() {
             <Route path="employees" element={<EmployeePage />} />
             <Route path="divisions" element={<DivisiPage />} />
             <Route path="jabatan" element={<JabatanPage />} />
+            
+            {/* Vendor Routes */}
+            <Route path="bills" element={<BillsPage />} />
+            <Route path="refunds" element={<RefundsPage />} />
+            <Route path="vendor-invoice" element={<VendorPaymentPage />} />
+            
+            {/* Customer Routes */}
+            <Route path="credit-note" element={<CreditNotePage />} />
+            <Route path="customer-invoice" element={<CustomerInvoicePage />} />
+            <Route path="customer-payment" element={<CustomerPaymentPage />} />
+            
+            {/* Payment Other Routes */}
+            <Route path="salaries" element={<SalariesPage />} />
+            <Route path="loan" element={<LoanPage />} />
+            
+            {/* Accounting Routes */}
+            <Route path="journal-entries" element={<JournalEntriesPage />} />
+            <Route path="journal-items" element={<JournalItemsPage />} />
+            <Route path="general-ledger" element={<GeneralLedgerPage />} />
             
             {/* Settings Routes */}
             <Route path="settings" element={
