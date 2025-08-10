@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Plus, FileText, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import { SalesOrder } from '../../models/SalesOrder';
 import { UOM } from '../../models/UOM';
 import { UOMService } from '../../services/UOMService';
@@ -8,6 +9,7 @@ import { Product } from '../../models/Product';
 import { SalesOrderService } from '../../services/SalesOrderService';
 import { CustomerService } from '../../services/CustomerService';
 import { toast } from 'react-hot-toast';
+import { formatCurrency } from '../../utils/formatters';
 
 // Import the components we created
 import SalesOrderList from './SalesOrderList';
