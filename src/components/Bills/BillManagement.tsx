@@ -161,7 +161,6 @@ const BillManagement: React.FC = () => {
     };
     
     submitBill();
-    }
   };
 
   const getStatusColor = (status: string) => {
