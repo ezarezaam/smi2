@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         { id: 'purchase-receipt', path: '/purchase-receipt', label: 'Purchase receipt' },
         { id: 'bills', path: '/bills', label: 'Bills' },
         { id: 'refunds', path: '/refunds', label: 'Refunds' },
-        { id: 'vendor-payment', path: '/vendor-invoice', label: 'Payment' },
+        { id: 'vendor-payment', path: '/vendor-payment', label: 'Payment' },
       ]
     },
     {

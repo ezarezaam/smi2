@@ -16,6 +16,7 @@ export const PurchaseOrderService = {
           phone
         )
       `)
+      .is('deleted_at', null)
       .order('order_date', { ascending: false });
     
     return { data, error };
@@ -40,6 +41,7 @@ export const PurchaseOrderService = {
           )
         `)
         .eq('id', id)
+        .is('deleted_at', null)
         .single();
       
       if (orderError) {
@@ -73,7 +75,8 @@ export const PurchaseOrderService = {
             code
           )
         `)
-        .eq('purchase_order_id', id);
+        .eq('purchase_order_id', id)
+        .is('deleted_at', null);
       
       if (itemsError) {
         console.error('Error fetching purchase order items:', itemsError);
@@ -82,12 +85,6 @@ export const PurchaseOrderService = {
       
       console.log('Purchase order items from DB:', itemsData);
       console.log('Items count:', itemsData ? itemsData.length : 0);
-      
-      if (itemsData && itemsData.length > 0) {
-        console.log('First item details:', JSON.stringify(itemsData[0], null, 2));
-      } else {
-        console.log('No items found for purchase order ID:', id);
-      }
       
       // Pemetaan data product untuk menambahkan buy_price dan sell_price
       const mappedItems = Array.isArray(itemsData) ? itemsData.map(item => {
@@ -136,7 +133,10 @@ export const PurchaseOrderService = {
         received_date: purchaseOrder.received_date,
         payment_status: purchaseOrder.payment_status || 'unpaid',
         payment_method: purchaseOrder.payment_method,
-        notes: purchaseOrder.notes
+        notes: purchaseOrder.notes,
+        received_status: 'pending',
+        billed_status: 'not_billed',
+        paid_status: 'unpaid'
       })
       .select()
       .single();
@@ -156,7 +156,9 @@ export const PurchaseOrderService = {
         tax_percent: item.tax_percent || 0,
         tax_amount: item.tax_amount || 0,
         discount: item.discount || 0,
-        total_price: item.total_price
+        total_price: item.total_price,
+        received_quantity: 0,
+        billed_quantity: 0
       }));
       
       const { error: itemsError } = await supabase
@@ -167,7 +169,7 @@ export const PurchaseOrderService = {
         // Jika gagal menambahkan items, hapus purchase order
         await supabase
           .from('purchase_orders')
-          .delete()
+          .update({ deleted_at: new Date().toISOString() })
           .eq('id', orderData.id);
         
         return { data: null, error: itemsError };
@@ -194,7 +196,8 @@ export const PurchaseOrderService = {
         payment_method: purchaseOrder.payment_method,
         notes: purchaseOrder.notes
       })
-      .eq('id', id);
+      .eq('id', id)
+      .is('deleted_at', null);
     
     if (orderError) {
       return { data: null, error: orderError };
@@ -202,11 +205,12 @@ export const PurchaseOrderService = {
     
     // Update items jika ada
     if (purchaseOrder.items && purchaseOrder.items.length > 0) {
-      // Hapus semua items lama
+      // Soft delete semua items lama
       const { error: deleteError } = await supabase
         .from('purchase_order_items')
-        .delete()
-        .eq('purchase_order_id', id);
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('purchase_order_id', id)
+        .is('deleted_at', null);
       
       if (deleteError) {
         return { data: null, error: deleteError };
@@ -222,7 +226,9 @@ export const PurchaseOrderService = {
         tax_percent: item.tax_percent || 0,
         tax_amount: item.tax_amount || 0,
         discount: item.discount || 0,
-        total_price: item.total_price
+        total_price: item.total_price,
+        received_quantity: item.received_quantity || 0,
+        billed_quantity: item.billed_quantity || 0
       }));
       
       const { error: itemsError } = await supabase
@@ -238,106 +244,26 @@ export const PurchaseOrderService = {
     return await this.getById(id);
   },
   
-  // Menghapus purchase order
+  // Soft delete purchase order
   async delete(id: string): Promise<{ error: any }> {
-    // Hapus semua items terlebih dahulu
+    // Soft delete semua items terlebih dahulu
     const { error: itemsError } = await supabase
       .from('purchase_order_items')
-      .delete()
-      .eq('purchase_order_id', id);
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('purchase_order_id', id)
+      .is('deleted_at', null);
     
     if (itemsError) {
       return { error: itemsError };
     }
     
-    // Hapus purchase order
+    // Soft delete purchase order
     const { error } = await supabase
       .from('purchase_orders')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
     
     return { error };
-  },
-  
-  // Mencari purchase order berdasarkan order_number atau vendor
-  async search(query: string): Promise<{ data: PurchaseOrder[] | null, error: any }> {
-    const { data, error } = await supabase
-      .from('purchase_orders')
-      .select(`
-        *,
-        contact:contacts_id (
-          id,
-          name,
-          contact_person,
-          email,
-          phone
-        )
-      `)
-      .or(`order_number.ilike.%${query}%,notes.ilike.%${query}%`)
-      .order('order_date', { ascending: false });
-    
-    return { data, error };
-  },
-  
-  // Filter purchase order berdasarkan status
-  async filterByStatus(statuses: string[]): Promise<{ data: PurchaseOrder[] | null, error: any }> {
-    const { data, error } = await supabase
-      .from('purchase_orders')
-      .select(`
-        *,
-        contact:contacts_id (
-          id,
-          name,
-          contact_person,
-          email,
-          phone
-        )
-      `)
-      .in('status', statuses)
-      .order('order_date', { ascending: false });
-    
-    return { data, error };
-  },
-  
-  // Filter purchase order berdasarkan status pembayaran
-  async filterByPaymentStatus(statuses: string[]): Promise<{ data: PurchaseOrder[] | null, error: any }> {
-    const { data, error } = await supabase
-      .from('purchase_orders')
-      .select(`
-        *,
-        contact:contacts_id (
-          id,
-          name,
-          contact_person,
-          email,
-          phone
-        )
-      `)
-      .in('payment_status', statuses)
-      .order('order_date', { ascending: false });
-    
-    return { data, error };
-  },
-  
-  // Filter purchase order berdasarkan rentang tanggal
-  async filterByDateRange(startDate: string, endDate: string): Promise<{ data: PurchaseOrder[] | null, error: any }> {
-    const { data, error } = await supabase
-      .from('purchase_orders')
-      .select(`
-        *,
-        contact:contacts_id (
-          id,
-          name,
-          contact_person,
-          email,
-          phone
-        )
-      `)
-      .gte('order_date', startDate)
-      .lte('order_date', endDate)
-      .order('order_date', { ascending: false });
-    
-    return { data, error };
   },
   
   // Generate order number baru
@@ -351,71 +277,15 @@ export const PurchaseOrderService = {
     return `PO-${year}${month}${day}-${random}`;
   },
   
-  // Soft delete purchase order
-  async delete(id: string): Promise<{ error: any }> {
+  // Update workflow status
+  async updateWorkflowStatus(id: string, statusType: 'received' | 'billed' | 'paid', status: string): Promise<{ error: any }> {
+    const updateField = `${statusType}_status`;
     const { error } = await supabase
       .from('purchase_orders')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+      .update({ [updateField]: status })
+      .eq('id', id)
+      .is('deleted_at', null);
     
     return { error };
-  },
-  
-  // Update status purchase order menjadi received
-  async markAsReceived(id: string, receivedDate: string | Date): Promise<{ data: PurchaseOrder | null, error: any }> {
-    const { error } = await supabase
-      .from('purchase_orders')
-      .update({
-        status: 'received',
-        received_date: receivedDate
-      })
-      .eq('id', id);
-    
-    if (error) {
-      return { data: null, error };
-    }
-    
-    // Ambil data purchase order untuk update stok produk
-    const { data: orderData } = await this.getById(id);
-    
-    if (orderData && orderData.items && orderData.items.length > 0) {
-      // Update stok produk
-      for (const item of orderData.items) {
-        if (item.product_id) {
-          // Ambil data produk
-          const { data: productData } = await supabase
-            .from('products')
-            .select('stock')
-            .eq('id', item.product_id)
-            .single();
-          
-          if (productData) {
-            // Update stok produk
-            await supabase
-              .from('products')
-              .update({
-                stock: productData.stock + item.quantity
-              })
-              .eq('id', item.product_id);
-            
-            // Tambahkan transaksi produk
-            await supabase
-              .from('product_transactions')
-              .insert({
-                product_id: item.product_id,
-                transaction_type: 'purchase',
-                quantity: item.quantity,
-                price: item.unit_price,
-                total_amount: item.total_price,
-                transaction_date: receivedDate,
-                reference_id: id,
-                reference_name: orderData.contact?.name || 'Unknown Vendor'
-              });
-          }
-        }
-      }
-    }
-    
-    return await this.getById(id);
   }
 };

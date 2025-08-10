@@ -80,6 +80,7 @@ function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="sales" element={<SalesPage />} />
             <Route path="purchase-order" element={<PurchaseOrderPage />} />
+            <Route path="purchase-receipt" element={<PurchaseReceiptPage />} />
 <Route path="expenses" element={<ExpensesPage />} />
             <Route path="sales-order" element={<SalesOrderPage />} />
             <Route path="proposals" element={<CommercialProposalPage />} />
@@ -93,8 +94,7 @@ function App() {
             {/* Vendor Routes */}
             <Route path="bills" element={<BillsPage />} />
             <Route path="refunds" element={<RefundsPage />} />
-            <Route path="vendor-invoice" element={<VendorPaymentPage />} />
-            <Route path="purchase-receipt" element={<PurchaseReceiptPage />} />
+            <Route path="vendor-payment" element={<VendorPaymentPage />} />
             
             {/* Customer Routes */}
             <Route path="credit-note" element={<CreditNotePage />} />

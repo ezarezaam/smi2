@@ -95,6 +95,7 @@ const BillManagement: React.FC = () => {
       toast.error('Gagal memuat data PO: ' + error.message);
     }
   };
+
   const filteredBills = bills.filter(bill => {
     const matchesSearch = bill.bill_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          bill.vendor?.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -109,6 +110,9 @@ const BillManagement: React.FC = () => {
       vendor_id: '',
       bill_date: new Date().toISOString().split('T')[0],
       due_date: '',
+      subtotal_amount: 0,
+      tax_amount: 0,
+      discount_amount: 0,
       total_amount: 0,
       paid_amount: 0,
       status: 'draft',
@@ -166,9 +170,11 @@ const BillManagement: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'sent': return 'bg-blue-100 text-blue-800';
+      case 'approved': return 'bg-yellow-100 text-yellow-800';
       case 'paid': return 'bg-green-100 text-green-800';
       case 'overdue': return 'bg-red-100 text-red-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -184,6 +190,60 @@ const BillManagement: React.FC = () => {
           <Plus className="h-5 w-5" />
           <span>Add Bill</span>
         </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 bg-blue-100 rounded-md">
+              <Calendar className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Total Bills</p>
+              <p className="text-2xl font-bold text-gray-900">{bills.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 bg-green-100 rounded-md">
+              <DollarSign className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Total Amount</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCurrency(bills.reduce((sum, b) => sum + b.total_amount, 0))}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 bg-yellow-100 rounded-md">
+              <Eye className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Outstanding</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCurrency(bills.reduce((sum, b) => sum + (b.total_amount - b.paid_amount), 0))}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 bg-purple-100 rounded-md">
+              <Calendar className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Paid Bills</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {bills.filter(b => b.payment_status === 'paid').length}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -220,6 +280,7 @@ const BillManagement: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bill Number</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PO Number</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
@@ -234,13 +295,21 @@ const BillManagement: React.FC = () => {
                   {bill.bill_number}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {bill.purchase_order?.order_number || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {bill.vendor?.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(bill.bill_date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatCurrency(bill.total_amount)}
+                  <div>
+                    <p>{formatCurrency(bill.total_amount)}</p>
+                    <p className="text-xs text-gray-400">
+                      Paid: {formatCurrency(bill.paid_amount)}
+                    </p>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(bill.status)}`}>
@@ -313,19 +382,6 @@ const BillManagement: React.FC = () => {
                         {po.order_number} - {po.contact?.name}
                       </option>
                     ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Vendor
-                  </label>
-                  <select
-                    value={formData.vendor_id}
-                    onChange={(e) => setFormData({...formData, vendor_id: e.target.value})}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    disabled={!!formData.purchase_order_id}
-                  >
-                    <option value="">Select Vendor</option>
                   </select>
                 </div>
                 <div>
