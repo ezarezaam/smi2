@@ -3,15 +3,18 @@ export interface JournalEntry {
   entry_number: string;
   entry_date: string | Date;
   description: string;
-  reference_type?: string;
+  reference_type?: 'purchase_order' | 'bill' | 'payment' | 'receipt' | 'manual';
   reference_id?: string;
   total_debit: number;
   total_credit: number;
   status: 'draft' | 'posted' | 'reversed';
+  posted_date?: string | Date;
+  posted_by?: string;
   created_by?: string;
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  deleted_at?: string;
   items?: JournalItem[];
 }
 
@@ -25,6 +28,7 @@ export interface JournalItem {
   credit_amount: number;
   created_at?: string;
   updated_at?: string;
+  deleted_at?: string;
 }
 
 export const JOURNAL_STATUS = {
