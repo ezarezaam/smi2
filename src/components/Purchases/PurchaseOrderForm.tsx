@@ -121,6 +121,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     onSubmit({ ...formData, items });
   };
 
+  const selectedProduct = products.find(p => p.id === newItem.product_id);
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center mb-6">
@@ -439,100 +441,6 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             type="submit"
             disabled={!formData.contacts_id || items.length === 0}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isEditing ? 'Update PO' : 'Create PO'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-export default PurchaseOrderForm;
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="bg-green-600 text-white px-2 py-1 rounded text-sm"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddItem(false)}
-                    className="bg-gray-600 text-white px-2 py-1 rounded text-sm"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Items Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">UOM</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                      No items added. Click "Add Item" to add products.
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((item, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="px-4 py-2 text-sm">{item.product?.name}</td>
-                      <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
-                      <td className="px-4 py-2 text-sm">{item.uom?.name || '-'}</td>
-                      <td className="px-4 py-2 text-sm text-right">{formatCurrency(item.unit_price)}</td>
-                      <td className="px-4 py-2 text-sm text-right">{item.tax_percent}%</td>
-                      <td className="px-4 py-2 text-sm text-right">{formatCurrency(item.total_price)}</td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-              <tfoot className="bg-gray-50">
-                <tr>
-                  <td colSpan={5} className="px-4 py-2 text-right font-medium">Total:</td>
-                  <td className="px-4 py-2 text-right font-bold">{formatCurrency(formData.total_amount)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             {isEditing ? 'Update PO' : 'Create PO'}
           </button>
