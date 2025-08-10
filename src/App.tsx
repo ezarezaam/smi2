@@ -34,6 +34,7 @@ import PurchaseReceiptPage from './pages/PurchaseReceiptPage';
 import CreditNotePage from './pages/CreditNotePage';
 import CustomerInvoicePage from './pages/CustomerInvoicePage';
 import CustomerPaymentPage from './pages/CustomerPaymentPage';
+import DeliveryOrderPage from './pages/DeliveryOrderPage';
 import SalariesPage from './pages/SalariesPage';
 import LoanPage from './pages/LoanPage';
 import JournalEntriesPage from './pages/JournalEntriesPage';
@@ -97,6 +98,7 @@ function App() {
             <Route path="vendor-payment" element={<VendorPaymentPage />} />
             
             {/* Customer Routes */}
+            <Route path="delivery-order" element={<DeliveryOrderPage />} />
             <Route path="credit-note" element={<CreditNotePage />} />
             <Route path="customer-invoice" element={<CustomerInvoicePage />} />
             <Route path="customer-payment" element={<CustomerPaymentPage />} />
