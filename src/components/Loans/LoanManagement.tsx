@@ -1,70 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, DollarSign, Calendar, TrendingUp } from '../icons';
-import { Loan, LOAN_STATUS, LOAN_TYPES } from '../../models/Loan';
+import { Plus, Search, Edit, Trash2, Eye, DollarSign, Calendar, TrendingUp, CreditCard } from '../icons';
+import { Loan, LoanPayment, LOAN_STATUS, LOAN_TYPES, DEFAULT_LOAN } from '../../models/Loan';
+import { LoanService } from '../../services/LoanService';
+import { EmployeeService } from '../../services/EmployeeService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { toast } from 'react-hot-toast';
 
 const LoanManagement: React.FC = () => {
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Sample data
-  const sampleLoans: Loan[] = [
-    {
-      id: '1',
-      loan_number: 'LOAN-001',
-      borrower_name: 'John Doe',
-      loan_type: 'employee',
-      principal_amount: 10000000,
-      interest_rate: 12,
-      term_months: 12,
-      monthly_payment: 888000,
-      remaining_balance: 8000000,
-      start_date: '2024-06-01',
-      end_date: '2025-06-01',
-      status: 'active',
-      notes: 'Pinjaman karyawan untuk keperluan darurat'
-    },
-    {
-      id: '2',
-      loan_number: 'LOAN-002',
-      borrower_name: 'PT Senior Milenial Indonesia',
-      loan_type: 'business',
-      principal_amount: 50000000,
-      interest_rate: 15,
-      term_months: 24,
-      monthly_payment: 2400000,
-      remaining_balance: 35000000,
-      start_date: '2024-01-01',
-      end_date: '2026-01-01',
-      status: 'active',
-      notes: 'Pinjaman modal kerja untuk ekspansi bisnis'
-    }
-  ];
-
-  const [formData, setFormData] = useState<Loan>({
-    loan_number: '',
-    borrower_name: '',
-    loan_type: 'employee',
+  const [formData, setFormData] = useState<Loan>(DEFAULT_LOAN);
+  const [paymentData, setPaymentData] = useState<LoanPayment>({
+    loan_id: '',
+    payment_number: '',
+    payment_date: new Date().toISOString().split('T')[0],
+    amount: 0,
     principal_amount: 0,
-    interest_rate: 0,
-    term_months: 12,
-    monthly_payment: 0,
+    interest_amount: 0,
     remaining_balance: 0,
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: '',
-    status: 'active',
+    status: 'completed',
     notes: ''
   });
 
   useEffect(() => {
-    setLoans(sampleLoans);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Load loans
+      const { data: loansData, error: loansError } = await LoanService.getAll();
+      if (loansError) throw loansError;
+      setLoans(loansData || []);
+
+      // Load employees for borrower selection
+      const { data: employeesData, error: employeesError } = await EmployeeService.getAll();
+      if (employeesError) throw employeesError;
+      setEmployees(employeesData || []);
+    } catch (error: any) {
+      toast.error('Gagal memuat data: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Calculate monthly payment and end date
   useEffect(() => {
@@ -90,24 +80,14 @@ const LoanManagement: React.FC = () => {
     const matchesSearch = loan.loan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          loan.borrower_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
-    const matchesType = typeFilter === 'all' || loan.loan_type === typeFilter;
+    const matchesType = typeFilter === 'all' || loan.borrower_type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
 
   const handleAdd = () => {
     setFormData({
-      loan_number: `LOAN-${String(loans.length + 1).padStart(3, '0')}`,
-      borrower_name: '',
-      loan_type: 'employee',
-      principal_amount: 0,
-      interest_rate: 12,
-      term_months: 12,
-      monthly_payment: 0,
-      remaining_balance: 0,
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: '',
-      status: 'active',
-      notes: ''
+      ...DEFAULT_LOAN,
+      loan_number: LoanService.generateLoanNumber()
     });
     setShowAddModal(true);
   };
@@ -120,16 +100,91 @@ const LoanManagement: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedLoan) {
-      setLoans(loans.map(l => l.id === selectedLoan.id ? { ...formData, id: selectedLoan.id } : l));
-      toast.success('Loan berhasil diperbarui');
-    } else {
-      setLoans([...loans, { ...formData, id: String(loans.length + 1) }]);
-      toast.success('Loan berhasil ditambahkan');
+    
+    const submitLoan = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (selectedLoan?.id) {
+          const { error } = await LoanService.update(selectedLoan.id, formData);
+          if (error) throw error;
+          toast.success('Loan berhasil diperbarui');
+        } else {
+          const { error } = await LoanService.create(formData);
+          if (error) throw error;
+          toast.success('Loan berhasil ditambahkan');
+        }
+        
+        setShowAddModal(false);
+        setShowEditModal(false);
+        setSelectedLoan(null);
+        loadData();
+      } catch (error: any) {
+        toast.error('Gagal menyimpan loan: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    submitLoan();
+  };
+
+  const handleDelete = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedLoan?.id) return;
+    
+    try {
+      setIsLoading(true);
+      const { error } = await LoanService.delete(selectedLoan.id);
+      if (error) throw error;
+      
+      toast.success('Loan berhasil dihapus');
+      setShowDeleteModal(false);
+      setSelectedLoan(null);
+      loadData();
+    } catch (error: any) {
+      toast.error('Gagal menghapus loan: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
-    setShowAddModal(false);
-    setShowEditModal(false);
-    setSelectedLoan(null);
+  };
+
+  const handleRecordPayment = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setPaymentData({
+      loan_id: loan.id || '',
+      payment_number: `LP-${loan.loan_number}-${String(Date.now()).slice(-4)}`,
+      payment_date: new Date().toISOString().split('T')[0],
+      amount: loan.monthly_payment,
+      principal_amount: loan.monthly_payment * 0.8,
+      interest_amount: loan.monthly_payment * 0.2,
+      remaining_balance: loan.remaining_balance - (loan.monthly_payment * 0.8),
+      status: 'completed',
+      notes: ''
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsLoading(true);
+      const { error } = await LoanService.recordPayment(paymentData.loan_id, paymentData);
+      if (error) throw error;
+      
+      toast.success('Pembayaran berhasil dicatat');
+      setShowPaymentModal(false);
+      loadData();
+    } catch (error: any) {
+      toast.error('Gagal mencatat pembayaran: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -282,8 +337,8 @@ const LoanManagement: React.FC = () => {
                   {loan.borrower_name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(loan.loan_type)}`}>
-                    {LOAN_TYPES[loan.loan_type as keyof typeof LOAN_TYPES]}
+                  <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(loan.borrower_type)}`}>
+                    {LOAN_TYPES[loan.borrower_type as keyof typeof LOAN_TYPES]}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -302,13 +357,25 @@ const LoanManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
+                    {loan.status === 'active' && (
+                      <button
+                        onClick={() => handleRecordPayment(loan)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Record Payment"
+                      >
+                        <CreditCard className="h-5 w-5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEdit(loan)}
                       className="text-yellow-600 hover:text-yellow-900"
                     >
                       <Edit className="h-5 w-5" />
                     </button>
-                    <button className="text-red-600 hover:text-red-900">
+                    <button 
+                      onClick={() => handleDelete(loan)}
+                      className="text-red-600 hover:text-red-900"
+                    >
                       <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
@@ -354,11 +421,11 @@ const LoanManagement: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Loan Type
+                    Borrower Type
                   </label>
                   <select
-                    value={formData.loan_type}
-                    onChange={(e) => setFormData({...formData, loan_type: e.target.value as any})}
+                    value={formData.borrower_type}
+                    onChange={(e) => setFormData({...formData, borrower_type: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     {Object.entries(LOAN_TYPES).map(([key, label]) => (
@@ -366,6 +433,32 @@ const LoanManagement: React.FC = () => {
                     ))}
                   </select>
                 </div>
+                {formData.borrower_type === 'employee' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Employee
+                    </label>
+                    <select
+                      value={formData.borrower_id || ''}
+                      onChange={(e) => {
+                        const employee = employees.find(emp => emp.id === e.target.value);
+                        setFormData({
+                          ...formData, 
+                          borrower_id: e.target.value,
+                          borrower_name: employee?.name || ''
+                        });
+                      }}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    >
+                      <option value="">Select Employee</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.name} - {emp.position || 'No Position'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Principal Amount
@@ -470,6 +563,145 @@ const LoanManagement: React.FC = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedLoan && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Konfirmasi Hapus</h3>
+            <p className="text-gray-600 mb-6">
+              Apakah Anda yakin ingin menghapus loan {selectedLoan.loan_number}?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedLoan && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">Record Loan Payment</h3>
+            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Number
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentData.payment_number}
+                    onChange={(e) => setPaymentData({...paymentData, payment_number: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    value={typeof paymentData.payment_date === 'string' ? paymentData.payment_date.split('T')[0] : ''}
+                    onChange={(e) => setPaymentData({...paymentData, payment_date: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Total Amount
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentData.amount}
+                    onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Principal Amount
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentData.principal_amount}
+                    onChange={(e) => setPaymentData({...paymentData, principal_amount: Number(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Interest Amount
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentData.interest_amount}
+                    onChange={(e) => setPaymentData({...paymentData, interest_amount: Number(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Remaining Balance
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentData.remaining_balance}
+                    onChange={(e) => setPaymentData({...paymentData, remaining_balance: Number(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={paymentData.notes}
+                  onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  {isLoading ? 'Recording...' : 'Record Payment'}
                 </button>
               </div>
             </form>

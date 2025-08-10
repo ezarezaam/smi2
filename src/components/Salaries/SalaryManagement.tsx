@@ -1,79 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Calculator, Users } from '../icons';
-import { Salary, SALARY_STATUS } from '../../models/Salary';
+import { Plus, Search, Edit, Trash2, Eye, Calculator, Users, CheckCircle } from '../icons';
+import { Salary, SALARY_STATUS, DEFAULT_SALARY } from '../../models/Salary';
+import { SalaryService } from '../../services/SalaryService';
+import { EmployeeService } from '../../services/EmployeeService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { toast } from 'react-hot-toast';
 
 const SalaryManagement: React.FC = () => {
   const [salaries, setSalaries] = useState<Salary[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('current');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedSalary, setSelectedSalary] = useState<Salary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Sample data
-  const sampleSalaries: Salary[] = [
-    {
-      id: '1',
-      employee_id: '1',
-      employee: { name: 'John Doe', position: 'Manager' },
-      period_month: 1,
-      period_year: 2025,
-      basic_salary: 8000000,
-      allowances: 1500000,
-      deductions: 500000,
-      overtime_hours: 10,
-      overtime_rate: 50000,
-      overtime_pay: 500000,
-      gross_salary: 10000000,
-      tax_deduction: 1000000,
-      net_salary: 9000000,
-      status: 'approved',
-      notes: 'Gaji bulan Januari 2025'
-    },
-    {
-      id: '2',
-      employee_id: '2',
-      employee: { name: 'Jane Smith', position: 'Staff' },
-      period_month: 1,
-      period_year: 2025,
-      basic_salary: 5000000,
-      allowances: 800000,
-      deductions: 200000,
-      overtime_hours: 5,
-      overtime_rate: 40000,
-      overtime_pay: 200000,
-      gross_salary: 6000000,
-      tax_deduction: 600000,
-      net_salary: 5400000,
-      status: 'paid',
-      payment_date: '2025-01-31',
-      notes: 'Gaji bulan Januari 2025'
-    }
-  ];
-
-  const [formData, setFormData] = useState<Salary>({
-    employee_id: '',
-    period_month: new Date().getMonth() + 1,
-    period_year: new Date().getFullYear(),
-    basic_salary: 0,
-    allowances: 0,
-    deductions: 0,
-    overtime_hours: 0,
-    overtime_rate: 0,
-    overtime_pay: 0,
-    gross_salary: 0,
-    tax_deduction: 0,
-    net_salary: 0,
-    status: 'draft',
-    notes: ''
-  });
+  const [formData, setFormData] = useState<Salary>(DEFAULT_SALARY);
 
   useEffect(() => {
-    setSalaries(sampleSalaries);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Load salaries
+      const { data: salariesData, error: salariesError } = await SalaryService.getAll();
+      if (salariesError) throw salariesError;
+      setSalaries(salariesData || []);
+
+      // Load employees
+      const { data: employeesData, error: employeesError } = await EmployeeService.getAll();
+      if (employeesError) throw employeesError;
+      setEmployees(employeesData || []);
+    } catch (error: any) {
+      toast.error('Gagal memuat data: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Calculate gross and net salary
   useEffect(() => {
@@ -98,22 +66,7 @@ const SalaryManagement: React.FC = () => {
   });
 
   const handleAdd = () => {
-    setFormData({
-      employee_id: '',
-      period_month: new Date().getMonth() + 1,
-      period_year: new Date().getFullYear(),
-      basic_salary: 0,
-      allowances: 0,
-      deductions: 0,
-      overtime_hours: 0,
-      overtime_rate: 0,
-      overtime_pay: 0,
-      gross_salary: 0,
-      tax_deduction: 0,
-      net_salary: 0,
-      status: 'draft',
-      notes: ''
-    });
+    setFormData(DEFAULT_SALARY);
     setShowAddModal(true);
   };
 
@@ -125,16 +78,79 @@ const SalaryManagement: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedSalary) {
-      setSalaries(salaries.map(s => s.id === selectedSalary.id ? { ...formData, id: selectedSalary.id } : s));
-      toast.success('Salary berhasil diperbarui');
-    } else {
-      setSalaries([...salaries, { ...formData, id: String(salaries.length + 1) }]);
-      toast.success('Salary berhasil ditambahkan');
+    
+    const submitSalary = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (selectedSalary?.id) {
+          const { error } = await SalaryService.update(selectedSalary.id, formData);
+          if (error) throw error;
+          toast.success('Salary berhasil diperbarui');
+        } else {
+          const { error } = await SalaryService.create(formData);
+          if (error) throw error;
+          toast.success('Salary berhasil ditambahkan');
+        }
+        
+        setShowAddModal(false);
+        setShowEditModal(false);
+        setSelectedSalary(null);
+        loadData();
+      } catch (error: any) {
+        toast.error('Gagal menyimpan salary: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    submitSalary();
+  };
+
+  const handleDelete = (salary: Salary) => {
+    setSelectedSalary(salary);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedSalary?.id) return;
+    
+    try {
+      setIsLoading(true);
+      const { error } = await SalaryService.delete(selectedSalary.id);
+      if (error) throw error;
+      
+      toast.success('Salary berhasil dihapus');
+      setShowDeleteModal(false);
+      setSelectedSalary(null);
+      loadData();
+    } catch (error: any) {
+      toast.error('Gagal menghapus salary: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
-    setShowAddModal(false);
-    setShowEditModal(false);
-    setSelectedSalary(null);
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const { error } = await SalaryService.approve(id);
+      if (error) throw error;
+      toast.success('Salary berhasil disetujui');
+      loadData();
+    } catch (error: any) {
+      toast.error('Gagal menyetujui salary: ' + error.message);
+    }
+  };
+
+  const handlePay = async (id: string) => {
+    try {
+      const { error } = await SalaryService.pay(id);
+      if (error) throw error;
+      toast.success('Salary berhasil dibayar');
+      loadData();
+    } catch (error: any) {
+      toast.error('Gagal membayar salary: ' + error.message);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -278,13 +294,34 @@ const SalaryManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
+                    {salary.status === 'draft' && (
+                      <button
+                        onClick={() => handleApprove(salary.id || '')}
+                        className="text-green-600 hover:text-green-900"
+                        title="Approve"
+                      >
+                        <CheckCircle className="h-5 w-5" />
+                      </button>
+                    )}
+                    {salary.status === 'approved' && (
+                      <button
+                        onClick={() => handlePay(salary.id || '')}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Pay"
+                      >
+                        <Calculator className="h-5 w-5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEdit(salary)}
                       className="text-yellow-600 hover:text-yellow-900"
                     >
                       <Edit className="h-5 w-5" />
                     </button>
-                    <button className="text-red-600 hover:text-red-900">
+                    <button 
+                      onClick={() => handleDelete(salary)}
+                      className="text-red-600 hover:text-red-900"
+                    >
                       <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
@@ -315,8 +352,11 @@ const SalaryManagement: React.FC = () => {
                     required
                   >
                     <option value="">Select Employee</option>
-                    <option value="1">John Doe - Manager</option>
-                    <option value="2">Jane Smith - Staff</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} - {emp.position || 'No Position'}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -469,6 +509,34 @@ const SalaryManagement: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedSalary && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Konfirmasi Hapus</h3>
+            <p className="text-gray-600 mb-6">
+              Apakah Anda yakin ingin menghapus salary untuk {selectedSalary.employee?.name} 
+              periode {new Date(selectedSalary.period_year, selectedSalary.period_month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
