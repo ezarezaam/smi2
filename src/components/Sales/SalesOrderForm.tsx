@@ -487,94 +487,115 @@ const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
                 )}
                 
                 {showAddProductRow && (
-                  <tr id="add-item-form" className="bg-blue-50">
+                  <tr id="add-item-form" className="bg-blue-50 border-l-4 border-blue-500">
                     <td className="py-2 px-4 border-b">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Product *</label>
                       <select
                         value={selectedProduct?.id || ''}
                         onChange={handleProductSelect}
-                        className={`border rounded px-3 py-2 w-full ${errors.product_id ? 'border-red-500' : ''}`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${errors.product_id ? 'border-red-500' : ''}`}
+                        required
                       >
                         <option value="">Pilih Produk</option>
                         {products && products.map(product => (
-                          <option key={product.id} value={product.id}>{product.name}</option>
+                          <option key={product.id} value={product.id}>
+                            {product.name} - {formatCurrency(product.price || 0)}
+                          </option>
                         ))}
                       </select>
                       {errors.product_id && (
                         <p className="text-red-500 text-xs mt-1">{errors.product_id}</p>
                       )}
+                      {selectedProduct && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Stock: {selectedProduct.stock || 0} | Category: {selectedProduct.category}
+                        </p>
+                      )}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {selectedProduct?.description || ''}
+                      <div className="text-xs text-gray-600">
+                        {selectedProduct?.description || 'Select product to see description'}
+                      </div>
                     </td>
                     <td className="py-2 px-4 border-b">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Qty *</label>
                       <input
                         type="number"
                         value={itemQuantity}
                         onChange={(e) => setItemQuantity(parseFloat(e.target.value) || 0)}
-                        className={`border rounded px-3 py-2 w-full text-right ${errors.quantity ? 'border-red-500' : ''}`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${errors.quantity ? 'border-red-500' : ''}`}
                         min="0.01"
                         step="0.01"
+                        required
                       />
                       {errors.quantity && (
                         <p className="text-red-500 text-xs mt-1">{errors.quantity}</p>
                       )}
                     </td>
                     <td className="py-2 px-4 border-b">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Unit</label>
                       <select
                         value={selectedUOM?.id || ''}
                         onChange={handleUOMSelect}
-                        className="border rounded px-3 py-2 w-full"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Pilih Satuan</option>
                         {uoms && uoms.map(uom => (
-                          <option key={uom.id} value={uom.id}>{uom.name}</option>
+                          <option key={uom.id} value={uom.id}>
+                            {uom.name} ({uom.code})
+                          </option>
                         ))}
                       </select>
                     </td>
                     <td className="py-2 px-4 border-b">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Price *</label>
                       <input
                         type="number"
                         value={itemPrice}
                         onChange={(e) => setItemPrice(parseFloat(e.target.value) || 0)}
-                        className={`border rounded px-3 py-2 w-full text-right ${errors.unit_price ? 'border-red-500' : ''}`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${errors.unit_price ? 'border-red-500' : ''}`}
                         min="0"
                         step="0.01"
+                        required
                       />
                       {errors.unit_price && (
                         <p className="text-red-500 text-xs mt-1">{errors.unit_price}</p>
                       )}
                     </td>
                     <td className="py-2 px-4 border-b">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tax %</label>
                       <input
                         type="number"
                         value={itemTaxPercent}
                         onChange={(e) => setItemTaxPercent(parseFloat(e.target.value) || 0)}
-                        className="border rounded px-3 py-2 w-full text-right"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         min="0"
                         max="100"
                         step="0.01"
                       />
                     </td>
                     <td className="py-2 px-4 border-b text-right">
-                      {formatCurrency((itemQuantity * itemPrice) * (1 + itemTaxPercent / 100))}
+                      <div className="text-sm font-medium text-green-600">
+                        {formatCurrency((itemQuantity * itemPrice) * (1 + itemTaxPercent / 100))}
+                      </div>
                     </td>
                     <td className="py-2 px-4 border-b text-center">
                       <div className="flex justify-center space-x-2">
                         <button
                           type="button"
                           onClick={handleAddItem}
-                          className="p-1 text-green-600 hover:text-green-800"
+                          className="p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                           title={editingItemIndex >= 0 ? "Update" : "Tambah"}
                         >
-                          <Plus size={16} />
+                          <Plus className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelAddItem}
-                          className="p-1 text-red-600 hover:text-red-800"
+                          className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                           title="Batal"
                         >
-                          <X size={16} />
+                          <X className="h-4 w-4" />
                         </button>
                       </div>
                     </td>

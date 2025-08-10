@@ -3,7 +3,7 @@ import PurchaseManagement from '../components/Purchases/PurchaseManagement';
 
 const PurchaseOrderPage: React.FC = () => {
   return (
-    <div>
+    <div className="p-6">
       <PurchaseManagement />
     </div>
   );

@@ -242,8 +242,76 @@ const SalesManagementNew: React.FC = () => {
   };
   
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Sales Order Management</h1>
+        {viewMode === 'list' && (
+          <button
+            onClick={handleAdd}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create Sales Order</span>
+          </button>
+        )}
+      </div>
 
+      {/* Summary Cards - Only show in list view */}
+      {viewMode === 'list' && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-100 rounded-md">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Total Sales Orders</p>
+                <p className="text-2xl font-bold text-gray-900">{salesOrders.length}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-green-100 rounded-md">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Confirmed</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {salesOrders.filter(so => so.status === 'confirmed').length}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-yellow-100 rounded-md">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Pending Delivery</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {salesOrders.filter(so => so.delivery_status === 'pending').length}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 rounded-md">
+                <DollarSign className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Total Value</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(salesOrders.reduce((sum, so) => sum + so.total_amount, 0))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {viewMode === 'list' && (
         <SalesOrderList

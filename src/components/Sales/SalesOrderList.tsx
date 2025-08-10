@@ -177,63 +177,48 @@ const SalesOrderList: React.FC<SalesOrderListProps> = ({
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            placeholder="Cari sales order..."
-            className="border rounded px-3 py-2 w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded hover:bg-gray-200"
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex space-x-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari sales order..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            <Filter size={16} />
-            <span>Filter</span>
-          </button>
+            <option value="">All Status</option>
+            {Object.entries(ORDER_STATUS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filterPaymentStatus}
+            onChange={(e) => setFilterPaymentStatus(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">All Payment Status</option>
+            {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
         </div>
-        <button
-          onClick={onAdd}
-          className="flex items-center space-x-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          <Plus size={16} />
-          <span>Tambah Sales Order</span>
-        </button>
       </div>
-      
-      {showFilters && (
-        <div className="bg-gray-50 p-4 rounded mb-4 flex space-x-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              className="border rounded px-3 py-2 w-full"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              {Object.entries(ORDER_STATUS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
-            <select
-              className="border rounded px-3 py-2 w-full"
-              value={filterPaymentStatus}
-              onChange={(e) => setFilterPaymentStatus(e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
+
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Sales Orders</h2>
+      </div>
       
       {renderSalesOrderList()}
     </div>

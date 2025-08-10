@@ -250,69 +250,205 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
           {/* Add Item Form */}
           {showAddItem && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              <div className="grid grid-cols-6 gap-2">
+            <div className="bg-blue-50 p-4 rounded-lg mb-4 border-l-4 border-blue-500">
+              <h4 className="text-sm font-medium text-blue-900 mb-3">Add New Item</h4>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Product</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product *</label>
                   <select
                     value={newItem.product_id}
                     onChange={(e) => handleProductSelect(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    required
                   >
                     <option value="">Select Product</option>
                     {products.map(product => (
-                      <option key={product.id} value={product.id}>{product.name}</option>
+                      <option key={product.id} value={product.id}>
+                        {product.name} - {formatCurrency(product.price || 0)}
+                      </option>
                     ))}
                   </select>
+                  {selectedProduct && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Stock: {selectedProduct.stock || 0} | Category: {selectedProduct.category}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Quantity</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
                   <input
                     type="number"
                     value={newItem.quantity}
                     onChange={(e) => setNewItem(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     min="0.01"
                     step="0.01"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">UOM</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
                   <select
                     value={newItem.uom_id || ''}
                     onChange={(e) => setNewItem(prev => ({ ...prev, uom_id: Number(e.target.value) }))}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">Select UOM</option>
+                    <option value="">Select Unit</option>
                     {uoms.map(uom => (
-                      <option key={uom.id} value={uom.id}>{uom.name}</option>
+                      <option key={uom.id} value={uom.id}>
+                        {uom.name} ({uom.code})
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Unit Price</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price *</label>
                   <input
                     type="number"
                     value={newItem.unit_price}
                     onChange={(e) => setNewItem(prev => ({ ...prev, unit_price: Number(e.target.value) }))}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                     step="0.01"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tax %</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax (%)</label>
                   <input
                     type="number"
                     value={newItem.tax_percent}
                     onChange={(e) => setNewItem(prev => ({ ...prev, tax_percent: Number(e.target.value) }))}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                     max="100"
                     step="0.01"
                   />
                 </div>
-                <div className="flex items-end space-x-1">
+                <div className="flex items-end space-x-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+                    <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-sm font-medium">
+                      {formatCurrency((newItem.quantity * newItem.unit_price) * (1 + newItem.tax_percent / 100))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddItem(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!showAddItem && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowAddItem(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Add Item</span>
+              </button>
+            </div>
+          )}
+
+          {/* Items Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-200 rounded-lg">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      No items added. Click "Add Item" to add products.
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{item.product?.name}</div>
+                          <div className="text-xs text-gray-500">{item.product?.description}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm">{item.quantity}</td>
+                      <td className="px-4 py-3 text-sm">{item.uom?.name || '-'}</td>
+                      <td className="px-4 py-3 text-right text-sm">{formatCurrency(item.unit_price)}</td>
+                      <td className="px-4 py-3 text-right text-sm">{item.tax_percent}%</td>
+                      <td className="px-4 py-3 text-right text-sm font-medium">{formatCurrency(item.total_price)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Remove Item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot className="bg-gray-50">
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-right font-medium text-gray-900">Total:</td>
+                  <td className="px-4 py-3 text-right font-bold text-blue-600">{formatCurrency(formData.total_amount)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!formData.contacts_id || items.length === 0}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isEditing ? 'Update PO' : 'Create PO'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default PurchaseOrderForm;
                   <button
                     type="button"
                     onClick={addItem}
