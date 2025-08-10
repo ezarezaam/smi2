@@ -1,7 +1,8 @@
 import React from 'react';
 import { SalesOrder, SalesOrderItem, ORDER_STATUS, PAYMENT_STATUS } from '../../models/SalesOrder';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, Package, FileText, CreditCard, Truck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SalesOrderDetailProps {
   salesOrder: SalesOrder;
@@ -14,6 +15,8 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
   onBack,
   onEdit
 }) => {
+  const navigate = useNavigate();
+  
   // Calculate subtotal, tax total, and grand total
   const calculateTotals = () => {
     let subtotal = 0;
@@ -44,6 +47,21 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
   
   const { subtotal, taxTotal, grandTotal } = calculateTotals();
   
+  // Helper functions for workflow status colors
+  const getWorkflowStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': case 'not_invoiced': case 'unpaid': return 'bg-yellow-100 text-yellow-800';
+      case 'partial': return 'bg-blue-100 text-blue-800';
+      case 'completed': case 'fully_invoiced': case 'paid': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // Check what workflow actions are available
+  const canDeliver = salesOrder.status === 'confirmed' && salesOrder.delivery_status !== 'completed';
+  const canCreateInvoice = salesOrder.delivery_status !== 'pending' && salesOrder.invoice_status !== 'fully_invoiced';
+  const canReceivePayment = salesOrder.invoice_status !== 'not_invoiced' && salesOrder.payment_status !== 'paid';
+  
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
@@ -61,6 +79,81 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
           <Edit size={16} />
           <span>Edit</span>
         </button>
+      </div>
+      
+      {/* Workflow Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white border rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">SO Status</p>
+              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(salesOrder.status || 'draft')}`}>
+                {ORDER_STATUS[salesOrder.status as keyof typeof ORDER_STATUS] || 'Draft'}
+              </span>
+            </div>
+            <FileText className="h-8 w-8 text-blue-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white border rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Delivery Status</p>
+              <span className={`px-2 py-1 text-xs rounded-full ${getWorkflowStatusColor(salesOrder.delivery_status || 'pending')}`}>
+                {salesOrder.delivery_status || 'pending'}
+              </span>
+            </div>
+            <Truck className="h-8 w-8 text-green-500" />
+          </div>
+          {canDeliver && (
+            <button
+              onClick={() => navigate('/delivery-order', { state: { salesOrderId: salesOrder.id } })}
+              className="mt-2 w-full bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+            >
+              Create Delivery
+            </button>
+          )}
+        </div>
+        
+        <div className="bg-white border rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Invoice Status</p>
+              <span className={`px-2 py-1 text-xs rounded-full ${getWorkflowStatusColor(salesOrder.invoice_status || 'not_invoiced')}`}>
+                {salesOrder.invoice_status || 'not_invoiced'}
+              </span>
+            </div>
+            <FileText className="h-8 w-8 text-purple-500" />
+          </div>
+          {canCreateInvoice && (
+            <button
+              onClick={() => navigate('/customer-invoice', { state: { salesOrderId: salesOrder.id } })}
+              className="mt-2 w-full bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+            >
+              Create Invoice
+            </button>
+          )}
+        </div>
+        
+        <div className="bg-white border rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Payment Status</p>
+              <span className={`px-2 py-1 text-xs rounded-full ${getWorkflowStatusColor(salesOrder.payment_status || 'unpaid')}`}>
+                {PAYMENT_STATUS[salesOrder.payment_status as keyof typeof PAYMENT_STATUS] || 'Belum Dibayar'}
+              </span>
+            </div>
+            <CreditCard className="h-8 w-8 text-orange-500" />
+          </div>
+          {canReceivePayment && (
+            <button
+              onClick={() => navigate('/customer-payment', { state: { salesOrderId: salesOrder.id } })}
+              className="mt-2 w-full bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700"
+            >
+              Record Payment
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -138,6 +231,8 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
               <th className="py-2 px-4 border-b text-left">Produk/Layanan</th>
               <th className="py-2 px-4 border-b text-left">Deskripsi</th>
               <th className="py-2 px-4 border-b text-right">Qty</th>
+              <th className="py-2 px-4 border-b text-right">Delivered</th>
+              <th className="py-2 px-4 border-b text-right">Invoiced</th>
               <th className="py-2 px-4 border-b text-left">Satuan</th>
               <th className="py-2 px-4 border-b text-right">Harga</th>
               <th className="py-2 px-4 border-b text-right">Pajak (%)</th>
@@ -160,6 +255,28 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
                     {item.description || item.product?.description || item.service?.description || '-'}
                   </td>
                   <td className="py-2 px-4 border-b text-right">{item.quantity}</td>
+                  <td className="py-2 px-4 border-b text-right">
+                    <span className={`px-2 py-1 text-xs rounded ${
+                      (item.delivered_quantity || 0) >= item.quantity 
+                        ? 'bg-green-100 text-green-800' 
+                        : (item.delivered_quantity || 0) > 0 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.delivered_quantity || 0}
+                    </span>
+                  </td>
+                  <td className="py-2 px-4 border-b text-right">
+                    <span className={`px-2 py-1 text-xs rounded ${
+                      (item.invoiced_quantity || 0) >= (item.delivered_quantity || 0) 
+                        ? 'bg-green-100 text-green-800' 
+                        : (item.invoiced_quantity || 0) > 0 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.invoiced_quantity || 0}
+                    </span>
+                  </td>
                   <td className="py-2 px-4 border-b">{item.uom?.name || '-'}</td>
                   <td className="py-2 px-4 border-b text-right">{formatCurrency(item.unit_price)}</td>
                   <td className="py-2 px-4 border-b text-right">{item.tax_percent || 0}%</td>
