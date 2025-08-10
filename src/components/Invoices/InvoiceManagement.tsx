@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Send, Download } from '../icons';
+import { Plus, Search, Edit, Trash2, Eye, Send, Download, DollarSign, Calendar } from '../icons';
 import { Invoice, INVOICE_STATUS } from '../../models/Invoice';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { toast } from 'react-hot-toast';

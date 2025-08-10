@@ -54,7 +54,8 @@ import {
   Receipt,
   Briefcase,
   FileSpreadsheet,
-  PackageCheck as Boxes
+  PackageCheck as Boxes,
+  Send
 } from 'lucide-react';
 
 // Export all icons used in the application
@@ -113,5 +114,6 @@ export {
   ArrowLeft,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Send
 };
