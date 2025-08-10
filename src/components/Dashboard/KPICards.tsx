@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Package, Users, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, AlertTriangle } from '../../components/icons';
 
 const KPICards: React.FC = () => {
   const kpis = [

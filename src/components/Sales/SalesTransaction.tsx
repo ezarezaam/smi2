@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Minus, ShoppingCart, Calculator, Send } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { Plus, Minus, ShoppingCart, Calculator, Send } = LucideIcons;
 
 const SalesTransaction: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);

@@ -1,63 +1,101 @@
-import React, { useState } from 'react';
-import Sidebar from './components/Layout/Sidebar';
-import Header from './components/Layout/Header';
-import Dashboard from './components/Dashboard/Dashboard';
-import ProductManagement from './components/Products/ProductManagement';
-import ServiceManagement from './components/Services/ServiceManagement';
-import SalesTransaction from './components/Sales/SalesTransaction';
-import PaymentTracking from './components/Payments/PaymentTracking';
-import FinancialReports from './components/Reports/FinancialReports';
-import ProcurementManagement from './components/Procurement/ProcurementManagement';
 
-type View = 'dashboard' | 'products' | 'services' | 'sales' | 'payments' | 'reports' | 'procurement';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './components/Layout/MainLayout';
+import { AuthProvider } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import { ToastContainer } from 'react-toastify';
+import SettingsPage from './pages/SettingsPage';
+import { UOMPage } from './pages/settings';
+import MasterOtherExpensePage from './pages/settings/MasterOtherExpensePage';
+import COAPage from './pages/settings/COAPage';
+
+// Pages
+import DashboardPage from './pages/DashboardPage';
+import ProductsPage from './pages/ProductsPage';
+import ServicesPage from './pages/ServicesPage';
+import InventoryPage from './pages/InventoryPage';
+import SalesPage from './pages/SalesPage';
+import SalesOrderPage from './pages/SalesOrderPage';
+import PurchaseOrderPage from './pages/PurchaseOrderPage';
+import ExpensesPage from './pages/ExpensesPage';
+import CommercialProposalPage from './pages/CommercialProposalPage';
+import PaymentsPage from './pages/PaymentsPage';
+import ReportsPage from './pages/ReportsPage';
+import ProcurementPage from './pages/ProcurementPage';
+import VendorPage from './pages/VendorPage';
+import CustomerPage from './pages/CustomerPage';
+import EmployeePage from './pages/EmployeePage';
+import DivisiPage from './pages/DivisiPage';
+import JabatanPage from './pages/JabatanPage';
+
+// Komponen untuk proteksi rute - DINONAKTIFKAN UNTUK DEVELOPMENT
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  // Bypass login check completely for development
+  // Selalu return children tanpa cek login
+  return <>{children}</>;
+  
+  /* Uncomment untuk mengaktifkan kembali proteksi rute
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+  */
+};
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'products':
-        return <ProductManagement />;
-      case 'services':
-        return <ServiceManagement />;
-      case 'sales':
-        return <SalesTransaction />;
-      case 'payments':
-        return <PaymentTracking />;
-      case 'reports':
-        return <FinancialReports />;
-      case 'procurement':
-        return <ProcurementManagement />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar 
-        currentView={currentView} 
-        setCurrentView={setCurrentView}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-      />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          currentView={currentView}
-          setSidebarOpen={setSidebarOpen}
-        />
-        
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
-          <div className="max-w-7xl mx-auto">
-            {renderView()}
-          </div>
-        </main>
-      </div>
-    </div>
+    <AuthProvider>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+      <BrowserRouter>
+        <Routes>
+          {/* Login page masih ada tapi tidak diakses secara default */}
+          <Route path="/login" element={<LoginPage />} />
+          
+          {/* Redirect dari root ke dashboard langsung */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<DashboardPage />} />
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="services" element={<ServicesPage />} />
+            <Route path="vendors" element={<VendorPage />} />
+            <Route path="customers" element={<CustomerPage />} />
+            <Route path="inventory" element={<InventoryPage />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="purchase-order" element={<PurchaseOrderPage />} />
+<Route path="expenses" element={<ExpensesPage />} />
+            <Route path="sales-order" element={<SalesOrderPage />} />
+            <Route path="proposals" element={<CommercialProposalPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="procurement" element={<ProcurementPage />} />
+            <Route path="employees" element={<EmployeePage />} />
+            <Route path="divisions" element={<DivisiPage />} />
+            <Route path="jabatan" element={<JabatanPage />} />
+            
+            {/* Settings Routes */}
+            <Route path="settings" element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Navigate to="/settings/general" replace />} />
+              <Route path="general" element={<div>General Settings</div>} />
+              <Route path="uom" element={<UOMPage />} />
+              <Route path="other-expense" element={<MasterOtherExpensePage />} />
+              <Route path="chart-of-accounts" element={<COAPage />} />
+            </Route>
+            
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

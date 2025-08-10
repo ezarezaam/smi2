@@ -1,5 +1,7 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { ArrowUpRight, ArrowDownRight } = LucideIcons;
 
 const RecentTransactions: React.FC = () => {
   const transactions = [

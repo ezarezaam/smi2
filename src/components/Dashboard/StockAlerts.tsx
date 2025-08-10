@@ -1,5 +1,7 @@
 import React from 'react';
-import { AlertTriangle, Package } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { AlertTriangle, Package } = LucideIcons;
 
 const StockAlerts: React.FC = () => {
   const alerts = [

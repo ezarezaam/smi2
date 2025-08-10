@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Filter, Calendar, CheckCircle, Clock, AlertCircle, DollarSign } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { Search, Filter, Calendar, CheckCircle, Clock, AlertCircle, DollarSign } = LucideIcons;
 
 const PaymentTracking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

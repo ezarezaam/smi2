@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Package, Truck, Calendar } from 'lucide-react';
+import * as LucideIcons from '../../components/icons';
+
+const { Plus, Package, Truck, Calendar } = LucideIcons;
 
 const ProcurementManagement: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  // Removed unused searchQuery state
+  const [idFilter, setIdFilter] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
+  const [descFilter, setDescFilter] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  // Removed unused legacy filters
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [currentExpense, setCurrentExpense] = useState<any>(null);
+  const [newExpense, setNewExpense] = useState({
+    vendor: '',
+    category: 'hardware',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    total: 0,
+    status: 'in_progress',
+    paymentStatus: 'pending'
+  });
 
   const expenses = [
     {
@@ -138,27 +160,56 @@ const ProcurementManagement: React.FC = () => {
     }
   };
 
-  const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.items.some(item => item.product.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || expense.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
+  const filteredExpenses = expenses.filter((expense) => {
+    const matchesId = idFilter === '' || expense.id.toLowerCase().includes(idFilter.toLowerCase());
+    const matchesVendor = vendorFilter === '' || expense.vendor.toLowerCase().includes(vendorFilter.toLowerCase());
+    const matchesDesc = descFilter === '' || expense.items.some(item => item.product.toLowerCase().includes(descFilter.toLowerCase()));
+    
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(expense.category);
+    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(expense.status);
+    const matchesPaymentStatus = selectedPaymentStatuses.length === 0 || selectedPaymentStatuses.includes(expense.paymentStatus);
+    
+    const expenseDate = new Date(expense.date);
+    const matchesDateFrom = dateFrom === '' || new Date(dateFrom) <= expenseDate;
+    const matchesDateTo = dateTo === '' || expenseDate <= new Date(dateTo);
+    
+    // Removed legacy filter checks
+    
+    return matchesId && matchesVendor && matchesDesc && 
+           matchesCategory && matchesStatus && matchesPaymentStatus && 
+           matchesDateFrom && matchesDateTo;
   });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Pengeluaran & Investasi</h1>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Tambah Pengeluaran</span>
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Cari ID, vendor, atau deskripsi..."
+              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => {
+                const value = e.target.value.toLowerCase();
+                setIdFilter(value);
+                setVendorFilter(value);
+                setDescFilter(value);
+              }}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            <span>Tambah Pengeluaran</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -198,67 +249,194 @@ const ProcurementManagement: React.FC = () => {
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-md">
-              <Package className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Vendor/Partner</p>
-              <p className="text-2xl font-bold text-gray-900">5</p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari transaksi, vendor, atau proyek..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
+      {/* Advanced Filters Toggle */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+        >
+          {showAdvancedFilters ? 'Sembunyikan Filter Lanjutan' : 'Tampilkan Filter Lanjutan'}
+          <svg
+            className={`ml-1 h-5 w-5 transform ${showAdvancedFilters ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Advanced Filters */}
+      {showAdvancedFilters && (
+        <div className="mt-2 bg-white rounded-lg shadow p-4 border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Text Search Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Pencarian</h3>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ID Transaksi</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Cari ID transaksi..."
+                    value={idFilter}
+                    onChange={(e) => setIdFilter(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Vendor/Partner</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Cari vendor..."
+                    value={vendorFilter}
+                    onChange={(e) => setVendorFilter(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Deskripsi</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Cari deskripsi..."
+                    value={descFilter}
+                    onChange={(e) => setDescFilter(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dropdown Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Filter</h3>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Kategori</label>
+                  <div className="flex flex-wrap gap-1">
+                    {categories.filter(c => c.id !== 'all').map(category => (
+                      <div 
+                        key={category.id} 
+                        onClick={() => {
+                          setSelectedCategories(prev => 
+                            prev.includes(category.id) 
+                              ? prev.filter(id => id !== category.id)
+                              : [...prev, category.id]
+                          );
+                        }}
+                        className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedCategories.includes(category.id) 
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                      >
+                        {category.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Status</label>
+                  <div className="flex flex-wrap gap-1">
+                    <div 
+                      onClick={() => setSelectedStatuses(prev => prev.includes('in_progress') ? prev.filter(s => s !== 'in_progress') : [...prev, 'in_progress'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedStatuses.includes('in_progress') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Dalam Proses
+                    </div>
+                    <div 
+                      onClick={() => setSelectedStatuses(prev => prev.includes('received') ? prev.filter(s => s !== 'received') : [...prev, 'received'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedStatuses.includes('received') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Diterima
+                    </div>
+                    <div 
+                      onClick={() => setSelectedStatuses(prev => prev.includes('completed') ? prev.filter(s => s !== 'completed') : [...prev, 'completed'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedStatuses.includes('completed') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Selesai
+                    </div>
+                    <div 
+                      onClick={() => setSelectedStatuses(prev => prev.includes('cancelled') ? prev.filter(s => s !== 'cancelled') : [...prev, 'cancelled'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedStatuses.includes('cancelled') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Dibatalkan
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Pembayaran</label>
+                  <div className="flex flex-wrap gap-1">
+                    <div 
+                      onClick={() => setSelectedPaymentStatuses(prev => prev.includes('pending') ? prev.filter(s => s !== 'pending') : [...prev, 'pending'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedPaymentStatuses.includes('pending') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Belum Bayar
+                    </div>
+                    <div 
+                      onClick={() => setSelectedPaymentStatuses(prev => prev.includes('partial') ? prev.filter(s => s !== 'partial') : [...prev, 'partial'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedPaymentStatuses.includes('partial') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Sebagian
+                    </div>
+                    <div 
+                      onClick={() => setSelectedPaymentStatuses(prev => prev.includes('paid') ? prev.filter(s => s !== 'paid') : [...prev, 'paid'])}
+                      className={`px-2 py-1 text-xs rounded-full cursor-pointer ${selectedPaymentStatuses.includes('paid') ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                    >
+                      Lunas
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Date Range Filter */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Rentang Tanggal</h3>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Dari Tanggal</label>
+                  <input
+                    type="date"
+                    className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Sampai Tanggal</label>
+                  <input
+                    type="date"
+                    className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <Filter className="h-4 w-4 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+
+          {/* Reset Filters Button */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setIdFilter('');
+                setVendorFilter('');
+                setDescFilter('');
+                setSelectedCategories([]);
+                setSelectedStatuses([]);
+                setSelectedPaymentStatuses([]);
+                setDateFrom('');
+                setDateTo('');
+              }}
+              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-md border border-gray-300"
             >
-              <option value="all">Semua Status</option>
-              <option value="completed">Selesai</option>
-              <option value="received">Diterima</option>
-              <option value="in_progress">Dalam Proses</option>
-              <option value="cancelled">Dibatalkan</option>
-            </select>
+              Reset Filter
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Expenses Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -343,8 +521,32 @@ const ProcurementManagement: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3">
+                      <button 
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        onClick={() => {
+                          setCurrentExpense(expense);
+                          setShowEditModal(true);
+                        }}
+                      >
                         Detail
+                      </button>
+                      <button 
+                        className="text-yellow-600 hover:text-yellow-900 mr-3"
+                        onClick={() => {
+                          setCurrentExpense(expense);
+                          setShowEditModal(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="text-red-600 hover:text-red-900 mr-3"
+                        onClick={() => {
+                          setCurrentExpense(expense);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        Hapus
                       </button>
                       {expense.paymentStatus === 'pending' && (
                         <button className="text-green-600 hover:text-green-900 mr-3">
@@ -365,30 +567,327 @@ const ProcurementManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Vendor Quick Info */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Vendor & Partner Terpercaya</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {vendors.map((vendor) => (
-            <div key={vendor.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-              <h4 className="font-medium text-gray-900 mb-1">{vendor.name}</h4>
-              <p className="text-xs text-blue-600 mb-2">{vendor.type}</p>
-              <div className="space-y-1 text-sm text-gray-600">
-                <p>📞 {vendor.contact}</p>
-                <p>✉️ {vendor.email}</p>
-              </div>
-              <button className="mt-3 w-full bg-blue-50 text-blue-600 py-2 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium">
-                Buat Transaksi
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {filteredExpenses.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Tidak ada transaksi yang ditemukan</p>
           <p className="text-gray-400 text-sm mt-2">Coba ubah filter atau tambah pengeluaran baru</p>
+        </div>
+      )}
+
+      {/* Add Expense Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Tambah Pengeluaran Baru</h3>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor/Partner</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.vendor}
+                    onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
+                  >
+                    <option value="">Pilih Vendor</option>
+                    {vendors.map(vendor => (
+                      <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.category}
+                    onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
+                  >
+                    {categories.filter(c => c.id !== 'all').map(category => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                  <input 
+                    type="text" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.description}
+                    onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                    placeholder="Deskripsi pengeluaran"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                  <input 
+                    type="date" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.date}
+                    onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total (Rp)</label>
+                  <input 
+                    type="number" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.total}
+                    onChange={(e) => setNewExpense({...newExpense, total: parseInt(e.target.value)})}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.status}
+                    onChange={(e) => setNewExpense({...newExpense, status: e.target.value})}
+                  >
+                    <option value="in_progress">Dalam Proses</option>
+                    <option value="received">Diterima</option>
+                    <option value="completed">Selesai</option>
+                    <option value="cancelled">Dibatalkan</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={newExpense.paymentStatus}
+                    onChange={(e) => setNewExpense({...newExpense, paymentStatus: e.target.value})}
+                  >
+                    <option value="pending">Belum Bayar</option>
+                    <option value="partial">Sebagian</option>
+                    <option value="paid">Lunas</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => {
+                  // Logic to add new expense
+                  const newId = `EXP-${String(expenses.length + 1).padStart(3, '0')}`;
+                  const newItem = {
+                    id: newId,
+                    vendor: newExpense.vendor,
+                    date: newExpense.date,
+                    total: newExpense.total,
+                    status: newExpense.status,
+                    paymentStatus: newExpense.paymentStatus,
+                    category: newExpense.category,
+                    items: [
+                      { product: newExpense.description, qty: 1, price: newExpense.total }
+                    ]
+                  };
+                  expenses.push(newItem);
+                  setShowAddModal(false);
+                  // Reset form
+                  setNewExpense({
+                    vendor: '',
+                    category: 'hardware',
+                    description: '',
+                    date: new Date().toISOString().split('T')[0],
+                    total: 0,
+                    status: 'in_progress',
+                    paymentStatus: 'pending'
+                  });
+                }}
+                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Expense Modal */}
+      {showEditModal && currentExpense && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Edit Pengeluaran {currentExpense.id}</h3>
+                <button 
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor/Partner</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.vendor}
+                    onChange={(e) => setCurrentExpense({...currentExpense, vendor: e.target.value})}
+                  >
+                    {vendors.map(vendor => (
+                      <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.category}
+                    onChange={(e) => setCurrentExpense({...currentExpense, category: e.target.value})}
+                  >
+                    {categories.filter(c => c.id !== 'all').map(category => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                  <input 
+                    type="text" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.items[0].product}
+                    onChange={(e) => {
+                      const updatedItems = [...currentExpense.items];
+                      updatedItems[0] = {...updatedItems[0], product: e.target.value};
+                      setCurrentExpense({...currentExpense, items: updatedItems});
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                  <input 
+                    type="date" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.date}
+                    onChange={(e) => setCurrentExpense({...currentExpense, date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total (Rp)</label>
+                  <input 
+                    type="number" 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.total}
+                    onChange={(e) => {
+                      const total = parseInt(e.target.value);
+                      const updatedItems = [...currentExpense.items];
+                      updatedItems[0] = {...updatedItems[0], price: total};
+                      setCurrentExpense({...currentExpense, total, items: updatedItems});
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.status}
+                    onChange={(e) => setCurrentExpense({...currentExpense, status: e.target.value})}
+                  >
+                    <option value="in_progress">Dalam Proses</option>
+                    <option value="received">Diterima</option>
+                    <option value="completed">Selesai</option>
+                    <option value="cancelled">Dibatalkan</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    value={currentExpense.paymentStatus}
+                    onChange={(e) => setCurrentExpense({...currentExpense, paymentStatus: e.target.value})}
+                  >
+                    <option value="pending">Belum Bayar</option>
+                    <option value="partial">Sebagian</option>
+                    <option value="paid">Lunas</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => {
+                  // Logic to update expense
+                  const index = expenses.findIndex(e => e.id === currentExpense.id);
+                  if (index !== -1) {
+                    expenses[index] = currentExpense;
+                  }
+                  setShowEditModal(false);
+                  setCurrentExpense(null);
+                }}
+                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && currentExpense && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Konfirmasi Hapus</h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-gray-700">Apakah Anda yakin ingin menghapus pengeluaran <span className="font-semibold">{currentExpense.id}</span>?</p>
+              <p className="text-gray-500 text-sm mt-2">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button 
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setCurrentExpense(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => {
+                  // Logic to delete expense
+                  const index = expenses.findIndex(e => e.id === currentExpense.id);
+                  if (index !== -1) {
+                    expenses.splice(index, 1);
+                  }
+                  setShowDeleteModal(false);
+                  setCurrentExpense(null);
+                }}
+                className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700 focus:outline-none"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

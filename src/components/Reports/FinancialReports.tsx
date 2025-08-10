@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Download, Calendar, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { Download, Calendar, TrendingUp, PieChart, BarChart3 } = LucideIcons;
 
 const FinancialReports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -473,7 +475,6 @@ const FinancialReports: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Laporan Keuangan</h1>
         <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2">
           <Download className="h-4 w-4" />
           <span>Export PDF</span>

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const { Calendar, Clock, AlertCircle } = LucideIcons;
 
 const PaymentReminders: React.FC = () => {
   const reminders = [

@@ -1,33 +1,128 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
   CreditCard, 
-  FileText, 
-  Truck,
   Settings,
-  X
-} from 'lucide-react';
+  X,
+  Users,
+  Building,
+  ChevronDown,
+  ChevronRight,
+  Calculator,
+  Boxes
+} from '../icons';
 
-type View = 'dashboard' | 'products' | 'services' | 'sales' | 'payments' | 'reports' | 'procurement';
+interface SubMenuItem {
+  id: string;
+  path: string;
+  label: string;
+  icon?: React.ElementType;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  path?: string;
+  submenu?: SubMenuItem[];
+  isOpen?: boolean;
+}
 
 interface SidebarProps {
-  currentView: View;
-  setCurrentView: (view: View) => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, setIsOpen }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'products', label: 'Manajemen Produk', icon: Package },
-    { id: 'services', label: 'Manajemen Layanan', icon: Settings },
-    { id: 'sales', label: 'Transaksi Penjualan', icon: ShoppingCart },
-    { id: 'payments', label: 'Tracking Pembayaran', icon: CreditCard },
-    { id: 'procurement', label: 'Pembelian', icon: Truck },
-    { id: 'reports', label: 'Laporan Keuangan', icon: FileText },
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+  const location = useLocation();
+  const [menuState, setMenuState] = useState<{[key: string]: boolean}>({});
+  
+  const toggleSubmenu = (id: string) => {
+    setMenuState(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+  
+  const menuItems: MenuItem[] = [
+    { id: 'dashboard', path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    {
+      id: 'vendor',
+      label: 'Vendor',
+      icon: Building,
+      submenu: [
+        { id: 'daftar-vendor', path: '/vendors', label: 'Daftar vendor' },
+        { id: 'purchase-order', path: '/purchase-order', label: 'Purchase order' },
+        { id: 'bills', path: '/bills', label: 'Bills' },
+        { id: 'refunds', path: '/refunds', label: 'Refunds' },
+        { id: 'vendor-payment', path: '/vendor-invoice', label: 'Payment' },
+      ]
+    },
+    {
+      id: 'customer',
+      label: 'Customer',
+      icon: Users,
+      submenu: [
+        { id: 'daftar-customer', path: '/customers', label: 'Daftar Customers' },
+        { id: 'sales-order', path: '/sales-order', label: 'Sales Order' },
+        { id: 'credit-note', path: '/credit-note', label: 'Credit note' },
+        { id: 'invoice', path: '/customer-invoice', label: 'Invoice' },
+        { id: 'customer-payment', path: '/customer-payment', label: 'Payment' },
+      ]
+    },
+    {
+      id: 'product-service',
+      label: 'Product & service',
+      icon: Package,
+      submenu: [
+        { id: 'product', path: '/products', label: 'Product' },
+        { id: 'service', path: '/services', label: 'Service' },
+      ]
+    },
+    {
+      id: 'payment-other',
+      label: 'Payment other',
+      icon: CreditCard,
+      submenu: [
+        { id: 'expenses', path: '/expenses', label: 'Expenses' },
+        { id: 'salaries', path: '/salaries', label: 'Salaries' },
+        { id: 'loan', path: '/loan', label: 'Loan' },
+      ]
+    },
+    {
+      id: 'accounting',
+      label: 'Accounting',
+      icon: Calculator,
+      submenu: [
+        { id: 'journal-entries', path: '/journal-entries', label: 'Journal Entries' },
+        { id: 'journal-items', path: '/journal-items', label: 'Journal items' },
+        { id: 'general-ledger', path: '/general-ledger', label: 'General Ledger' },
+        { id: 'reporting', path: '/reports', label: 'Reporting' },
+      ]
+    },
+    {
+      id: 'setting',
+      label: 'Setting',
+      icon: Settings,
+      submenu: [
+        { id: 'settings-uom', path: '/settings/uom', label: 'Unit of Measurement' },
+        { id: 'settings-other-expense', path: '/settings/other-expense', label: 'Pengeluaran Lain' },
+        { id: 'settings-coa', path: '/settings/chart-of-accounts', label: 'Chart of Accounts' },
+        { id: 'divisions', path: '/divisions', label: 'Divisi' },
+        { id: 'jabatan', path: '/jabatan', label: 'Jabatan' },
+      ]
+    },
+    {
+      id: 'user',
+      label: 'User',
+      icon: Users,
+      submenu: [
+        { id: 'employee', path: '/employee', label: 'Employee' },
+      ]
+    },
   ];
 
   return (
@@ -60,26 +155,78 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, 
           <div className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentView === item.id;
+              const hasSubmenu = item.submenu && item.submenu.length > 0;
+              const isSubmenuOpen = menuState[item.id] || false;
+              
+              // Check if current path matches this menu item or any of its submenu items
+              const isActive = item.path === location.pathname || 
+                (item.path === '/' && location.pathname === '/') ||
+                (hasSubmenu && item.submenu?.some(subItem => subItem.path === location.pathname));
               
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setCurrentView(item.id as View);
-                    setIsOpen(false);
-                  }}
-                  className={`
-                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                    ${isActive 
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }
-                  `}
-                >
-                  <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
-                  {item.label}
-                </button>
+                <div key={item.id}>
+                  {hasSubmenu ? (
+                    <div 
+                      onClick={() => toggleSubmenu(item.id)}
+                      className={`
+                        w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md cursor-pointer transition-colors
+                        ${isActive 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center">
+                        <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                        {item.label}
+                      </div>
+                      {isSubmenuOpen ? 
+                        <ChevronDown className="h-4 w-4 text-gray-400" /> : 
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      }
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.path || '/'}
+                      onClick={() => setIsOpen(false)}
+                      className={`
+                        w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                        ${isActive 
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                      {item.label}
+                    </Link>
+                  )}
+                  
+                  {/* Submenu */}
+                  {hasSubmenu && isSubmenuOpen && (
+                    <div className="pl-10 mt-1 space-y-1">
+                      {item.submenu?.map(subItem => {
+                        const isSubActive = location.pathname === subItem.path;
+                        return (
+                          <Link
+                            key={subItem.id}
+                            to={subItem.path}
+                            onClick={() => setIsOpen(false)}
+                            className={`
+                              w-full flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors
+                              ${isSubActive 
+                                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              }
+                            `}
+                          >
+                            {subItem.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

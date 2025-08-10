@@ -1,12 +1,17 @@
 import React from 'react';
-import { Menu, Bell, Search } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Bell, Search, LogOut } from '../icons';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
-  currentView: string;
   setSidebarOpen: (open: boolean) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentView, setSidebarOpen }) => {
+const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const currentPath = location.pathname.substring(1) || 'dashboard';
   const getViewTitle = (view: string) => {
     const titles = {
       dashboard: 'Dashboard',
@@ -32,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setSidebarOpen }) => {
           </button>
           
           <h2 className="ml-2 lg:ml-0 text-lg font-semibold text-gray-900">
-            {getViewTitle(currentView)}
+            {getViewTitle(currentPath)}
           </h2>
         </div>
         
@@ -51,6 +56,19 @@ const Header: React.FC<HeaderProps> = ({ currentView, setSidebarOpen }) => {
           <button className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md">
             <Bell className="h-6 w-6" />
             <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+          </button>
+          
+          <button 
+            onClick={async () => {
+              const result = await logout();
+              if (result.success) {
+                navigate('/login');
+              }
+            }}
+            className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md flex items-center"
+            title="Logout"
+          >
+            <LogOut className="h-5 w-5" />
           </button>
           
           <div className="text-right hidden sm:block">

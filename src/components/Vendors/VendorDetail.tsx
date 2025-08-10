@@ -1,0 +1,394 @@
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Mail, Phone, MapPin, Building2, FileText } from '../icons';
+import { Vendor } from '../../models/Vendor';
+
+// Formatting utilities
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value);
+};
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+// Transaction interface
+interface Transaction {
+  id: string;
+  transaction_id: string;
+  transaction_date: string;
+  amount: number;
+  description: string;
+  status: 'paid' | 'pending' | 'cancelled';
+}
+
+// Props interface
+interface VendorDetailProps {
+  vendorId: string;
+  onBack: () => void;
+}
+
+// Tabs component interfaces
+interface TabsProps {
+  children: React.ReactNode;
+  defaultValue: string;
+  className?: string;
+}
+
+interface TabsListProps {
+  children: React.ReactNode;
+  activeTab: string;
+  setActiveTab: (value: string) => void;
+  className?: string;
+}
+
+interface TabsTriggerProps {
+  children: React.ReactNode;
+  value: string; // This is used when cloning elements in TabsList
+  isActive?: boolean;
+  onClick?: () => void;
+  className?: string;
+}
+
+interface TabsContentProps {
+  children: React.ReactNode;
+  value: string;
+  activeTab: string;
+  className?: string;
+}
+
+// Tabs component implementation
+const Tabs: React.FC<TabsProps> = ({ children, defaultValue, className = '' }) => {
+  const [activeTab, setActiveTab] = useState(defaultValue);
+  
+  return (
+    <div className={`tabs ${className}`}>
+      {React.Children.map(children, (child) => {
+        if (React.isValidElement(child) && child.type === TabsList) {
+          return React.cloneElement(child as React.ReactElement<TabsListProps>, { 
+            activeTab, 
+            setActiveTab 
+          });
+        }
+        if (React.isValidElement(child) && child.type === TabsContent) {
+          return React.cloneElement(child as React.ReactElement<TabsContentProps>, { 
+            activeTab
+          });
+        }
+        return child;
+      })}
+    </div>
+  );
+};
+
+const TabsList: React.FC<TabsListProps> = ({ 
+  children, 
+  activeTab,
+  setActiveTab,
+  className = '' 
+}) => (
+  <div className={`flex border-b mb-4 ${className}`}>
+    {React.Children.map(children, (child) => {
+      if (React.isValidElement(child) && child.props.value) {
+        return React.cloneElement(child as React.ReactElement<TabsTriggerProps>, { 
+          isActive: child.props.value === activeTab,
+          onClick: () => setActiveTab(child.props.value) 
+        });
+      }
+      return child;
+    })}
+  </div>
+);
+
+const TabsTrigger: React.FC<TabsTriggerProps> = ({ 
+  children, 
+  // value is used when cloning elements in TabsList
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  value, 
+  isActive = false, 
+  onClick,
+  className = ''
+}) => (
+  <button
+    className={`px-4 py-2 font-medium text-sm ${isActive 
+      ? 'border-b-2 border-blue-500 text-blue-600' 
+      : 'text-gray-500 hover:text-gray-700'} ${className}`}
+    onClick={onClick}
+  >
+    {children}
+  </button>
+);
+
+const TabsContent: React.FC<TabsContentProps> = ({ 
+  children, 
+  value, 
+  activeTab,
+  className = ''
+}) => (
+  <div className={`${value === activeTab ? 'block' : 'hidden'} ${className}`}>
+    {children}
+  </div>
+);
+
+const VendorDetail: React.FC<VendorDetailProps> = ({ vendorId, onBack }) => {
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Dummy transaction data
+  const [transactions] = useState<Transaction[]>([
+    {
+      id: '1',
+      transaction_id: 'TX-001',
+      transaction_date: new Date().toISOString(),
+      amount: 5000000,
+      description: 'Pembelian bahan baku',
+      status: 'paid'
+    },
+    {
+      id: '2',
+      transaction_id: 'TX-002',
+      transaction_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      amount: 3500000,
+      description: 'Pembayaran jasa',
+      status: 'pending'
+    },
+    {
+      id: '3',
+      transaction_id: 'TX-003',
+      transaction_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      amount: 12500000,
+      description: 'Pembelian peralatan',
+      status: 'paid'
+    }
+  ]);
+
+  // Load vendor data
+  useEffect(() => {
+    const loadVendor = async () => {
+      try {
+        setIsLoading(true);
+        // Replace with actual API call
+        // const { data, error } = await VendorService.getById(vendorId);
+        // if (error) throw error;
+        // setVendor(data);
+        
+        // Dummy data for now
+        setTimeout(() => {
+          setVendor({
+            id: vendorId,
+            name: 'Vendor Dummy',
+            contact_person: 'John Doe',
+            email: 'john@example.com',
+            phone: '081234567890',
+            address: 'Jl. Contoh No. 123, Jakarta',
+            category: 'Supplier',
+            status: 'active',
+            created_at: new Date().toISOString()
+          });
+          setIsLoading(false);
+        }, 500);
+      } catch (error) {
+        console.error('Error loading vendor:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    if (vendorId) {
+      loadVendor();
+    }
+  }, [vendorId]);
+
+  // Get status color for badges
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!vendor) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">
+                Data vendor tidak dapat dimuat. Silakan coba lagi nanti.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center mb-6">
+        <button
+          onClick={onBack}
+          className="mr-4 p-2 rounded-full hover:bg-gray-100"
+        >
+          <ArrowLeft className="h-5 w-5 text-gray-600" />
+        </button>
+        <h1 className="text-2xl font-bold">Detail Vendor</h1>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <div className="p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">{vendor.name}</h2>
+              <p className="text-gray-600">{vendor.category}</p>
+              <div className="mt-2">
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vendor.status === 'active' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {vendor.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Kontak</h3>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-gray-900">{vendor.email}</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-gray-900">{vendor.phone}</span>
+                </div>
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-900">{vendor.address}</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Kontak Person</h3>
+              <div className="mt-2">
+                <p className="text-gray-900">{vendor.contact_person}</p>
+                <p className="text-sm text-gray-500">Contact Person</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="transactions">
+        <TabsList>
+          <TabsTrigger value="transactions">Transaksi</TabsTrigger>
+          <TabsTrigger value="details">Detail Lainnya</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="transactions">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Transaksi</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {transactions.map((transaction) => (
+                    <tr key={transaction.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {transaction.transaction_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(transaction.transaction_date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {transaction.description}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                        {formatCurrency(transaction.amount)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(transaction.status)}`}>
+                          {transaction.status === 'paid' ? 'Dibayar' : 
+                           transaction.status === 'pending' ? 'Tertunda' : 'Dibatalkan'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="details">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Informasi Tambahan</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Tanggal Registrasi</p>
+                    <p className="text-gray-900">{formatDate(vendor.created_at || new Date().toISOString())}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Kategori</p>
+                    <p className="text-gray-900">{vendor.category || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium mb-4">Dokumen</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center p-3 border rounded-md hover:bg-gray-50 cursor-pointer">
+                    <FileText className="h-5 w-5 text-blue-500 mr-2" />
+                    <span className="text-sm">Kontrak Kerjasama.pdf</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default VendorDetail;

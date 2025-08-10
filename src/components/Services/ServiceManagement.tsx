@@ -1,5 +1,24 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, X, Save, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Grid, List, Plus, Search, Filter, Edit, Trash2, X, Save, Clock, CheckCircle, AlertCircle } from '../icons';
+import { ServiceService } from '../../services/ServiceService';
+import { Service } from '../../models/Service';
+
+// Extend Service interface untuk fitur tambahan yang tidak ada di model asli
+interface ExtendedService extends Service {
+  features: string[];
+  image: string;
+  status?: string; // Add status field since it's used in the component
+}
+
+interface FormData {
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  status: string;
+  features: string[];
+  image: string;
+}
 
 const ServiceManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -7,63 +26,51 @@ const ServiceManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingService, setEditingService] = useState<any>(null);
+  const [editingService, setEditingService] = useState<ExtendedService | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingService, setDeletingService] = useState<any>(null);
+  const [deletingService, setDeletingService] = useState<ExtendedService | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list'); // Default view is list/table
 
-  const [services, setServices] = useState([
-    {
-      id: 'SRV-001',
-      name: 'Pengembangan Aplikasi Web',
-      category: 'Development',
-      description: 'Pembuatan aplikasi web custom sesuai kebutuhan bisnis',
-      price: 50000000,
-      duration: '3-6 bulan',
-      status: 'active',
-      features: ['Responsive Design', 'Database Integration', 'Admin Panel', 'API Integration'],
-      image: 'https://images.pexels.com/photos/270348/pexels-photo-270348.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: 'SRV-002',
-      name: 'Implementasi Cloud AWS',
-      category: 'Cloud Services',
-      description: 'Setup dan konfigurasi infrastruktur cloud di AWS',
-      price: 25000000,
-      duration: '2-4 minggu',
-      status: 'active',
-      features: ['EC2 Setup', 'RDS Configuration', 'Load Balancer', 'Auto Scaling'],
-      image: 'https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: 'SRV-003',
-      name: 'Maintenance Server Tahunan',
-      category: 'Maintenance',
-      description: 'Layanan maintenance dan monitoring server 24/7',
-      price: 15000000,
-      duration: '12 bulan',
-      status: 'active',
-      features: ['24/7 Monitoring', 'Regular Updates', 'Backup Management', 'Security Audit'],
-      image: 'https://images.pexels.com/photos/2881229/pexels-photo-2881229.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: 'SRV-004',
-      name: 'Konsultasi IT Strategy',
-      category: 'Consulting',
-      description: 'Konsultasi strategi IT untuk transformasi digital perusahaan',
-      price: 20000000,
-      duration: '1-2 bulan',
-      status: 'inactive',
-      features: ['IT Assessment', 'Strategic Planning', 'Technology Roadmap', 'Implementation Guide'],
-      image: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400'
+  const [services, setServices] = useState<ExtendedService[]>([]);
+  const [loading, setLoading] = useState<boolean>(false); // Used for loading state
+  const [error, setError] = useState<string | null>(null); // Used for error handling
+
+  // Fetch services from API
+  const fetchServices = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await ServiceService.getAll();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Convert Service[] to ExtendedService[] with default values for optional fields
+      const extendedData = (data || []).map((service: any) => ({
+        ...service,
+        features: service.features || [],
+        image: service.image || '/placeholder.jpg'
+      }));
+      
+      setServices(extendedData);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      setError('Failed to fetch services');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const [formData, setFormData] = useState({
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     category: 'Development',
     description: '',
     price: 0,
-    duration: '',
     status: 'active',
     features: [''],
     image: ''
@@ -74,15 +81,16 @@ const ServiceManagement: React.FC = () => {
 
   const filteredServices = services.filter(service => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.id.toLowerCase().includes(searchTerm.toLowerCase());
+                         (service.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+                         (service.id?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesCategory = filterCategory === 'all' || service.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || service.status === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
+  const getStatusInfo = (status: string | undefined) => {
+    const safeStatus = status || 'inactive';
+    switch (safeStatus) {
       case 'active':
         return { label: 'Aktif', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle };
       case 'inactive':
@@ -98,18 +106,14 @@ const ServiceManagement: React.FC = () => {
       category: 'Development',
       description: '',
       price: 0,
-      duration: '',
       status: 'active',
-      features: [''],
+      features: [],
       image: ''
     });
   };
 
   const handleAddFeature = () => {
-    setFormData({
-      ...formData,
-      features: [...formData.features, '']
-    });
+    setFormData({...formData, features: [...formData.features, '']});
   };
 
   const handleRemoveFeature = (index: number) => {
@@ -120,80 +124,166 @@ const ServiceManagement: React.FC = () => {
   };
 
   const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...formData.features];
-    newFeatures[index] = value;
-    setFormData({
-      ...formData,
-      features: newFeatures
-    });
+    const updatedFeatures = [...formData.features];
+    updatedFeatures[index] = value;
+    setFormData({...formData, features: updatedFeatures});
+  };
+  
+  // Fungsi handleFeatureChange sudah didefinisikan di atas
+
+  const handleAdd = async () => {
+    try {
+      // Create new service object
+      const newService = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        price: formData.price,
+        status: formData.status,
+        group: 'Service', // Ensure group is set to 'Service'
+        stock: 0, // Service doesn't have stock
+        buy_price: formData.price, // Set buy_price same as price for now
+        sell_price: formData.price // Set sell_price same as price for now
+      };
+
+      // Add features and image if available
+      const extendedService: any = { ...newService };
+      if (formData.features.length > 0) {
+        extendedService.features = formData.features.filter(f => f.trim() !== '');
+      }
+      if (formData.image) {
+        extendedService.image = formData.image;
+      }
+
+      await ServiceService.create(extendedService);
+      fetchServices();
+      setShowAddModal(false);
+      resetForm();
+    } catch (err) {
+      console.error('Error adding service:', err);
+      setError('Failed to add service');
+    }
   };
 
-  const handleAdd = () => {
-    const newService = {
-      id: `SRV-${String(services.length + 1).padStart(3, '0')}`,
-      ...formData,
-      features: formData.features.filter(f => f.trim() !== '')
-    };
-    setServices([...services, newService]);
-    setShowAddModal(false);
-    resetForm();
-  };
-
-  const handleEdit = (service: any) => {
+  const handleEdit = (service: ExtendedService) => {
     setEditingService(service);
     setFormData({
       name: service.name,
-      category: service.category,
-      description: service.description,
+      category: service.category || 'Development',
+      description: service.description || '',
       price: service.price,
-      duration: service.duration,
-      status: service.status,
-      features: [...service.features],
-      image: service.image
+      status: service.status || 'active',
+      features: service.features || [],
+      image: service.image || ''
     });
     setShowEditModal(true);
   };
 
-  const handleUpdate = () => {
-    setServices(services.map(s => 
-      s.id === editingService.id 
-        ? { 
-            ...editingService, 
-            ...formData,
-            features: formData.features.filter(f => f.trim() !== '')
-          }
-        : s
-    ));
-    setShowEditModal(false);
-    setEditingService(null);
-    resetForm();
+  const handleUpdate = async () => {
+    if (!editingService || !editingService.id) return;
+    
+    try {
+      // Prepare service data for API
+      const updatedService: Partial<Service> = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        price: formData.price,
+        status: formData.status,
+        group: 'Service', // Ensure group is set to 'Service'
+        buy_price: formData.price, // Set buy_price same as price for now
+        sell_price: formData.price // Set sell_price same as price for now
+      };
+
+      // Add features and image if available
+      const extendedUpdates: any = { ...updatedService };
+      if (formData.features.length > 0) {
+        extendedUpdates.features = formData.features.filter(f => f.trim() !== '');
+      }
+      if (formData.image) {
+        extendedUpdates.image = formData.image;
+      }
+
+      await ServiceService.update(editingService.id, extendedUpdates);
+      fetchServices();
+      setShowEditModal(false);
+      setEditingService(null);
+      resetForm();
+    } catch (err) {
+      console.error('Error updating service:', err);
+      setError('Failed to update service');
+    }
   };
 
-  const handleDelete = (service: any) => {
+  // Fungsi untuk menghapus service dari Supabase
+  const handleDelete = async (service: ExtendedService) => {
+    if (!service.id) return;
+    
+    try {
+      await ServiceService.delete(service.id);
+      fetchServices();
+      setShowDeleteModal(false);
+      setDeletingService(null);
+    } catch (err) {
+      console.error('Error deleting service:', err);
+      setError('Failed to delete service');
+    }
+  };
+
+  // Fungsi untuk membuka modal konfirmasi hapus
+  const handleDeleteConfirmation = (service: ExtendedService) => {
     setDeletingService(service);
     setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    setServices(services.filter(s => s.id !== deletingService.id));
-    setShowDeleteModal(false);
-    setDeletingService(null);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Manajemen Layanan IT</h1>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Tambah Layanan</span>
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+        <div className="flex space-x-2">
+          <div className="bg-gray-100 rounded-md p-1 flex items-center">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`p-1.5 rounded-md ${viewMode === 'card' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Grid className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <List className="h-5 w-5" />
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setShowAddModal(true);
+              resetForm();
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Tambah Layanan</span>
+          </button>
+        </div>
       </div>
 
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <p>{error}</p>
+          <button 
+            onClick={fetchServices} 
+            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+          >
+            Coba lagi
+          </button>
+        </div>
+      ) : (
+        <>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -299,99 +389,166 @@ const ServiceManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredServices.map((service) => {
-          const statusInfo = getStatusInfo(service.status);
-          const StatusIcon = statusInfo.icon;
-          
-          return (
-            <div key={service.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div className="aspect-w-16 aspect-h-9">
-                <img 
-                  src={service.image} 
-                  alt={service.name}
-                  className="w-full h-48 object-cover"
-                />
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                    <p className="text-sm text-gray-500">{service.id}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      {service.category}
-                    </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
-                      <StatusIcon className="h-3 w-3 mr-1" />
-                      {statusInfo.label}
-                    </span>
-                  </div>
+      {/* Services Display - Card or Table View */}
+      {viewMode === 'card' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map((service) => {
+            const statusInfo = getStatusInfo(service.status);
+            const StatusIcon = statusInfo.icon;
+            
+            return (
+              <div key={service.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="aspect-w-16 aspect-h-9">
+                  <img 
+                    src={service.image} 
+                    alt={service.name}
+                    className="w-full h-48 object-cover"
+                  />
                 </div>
                 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {service.description}
-                </p>
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                      <p className="text-sm text-gray-500">{service.id}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        {service.category}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {service.description}
+                  </p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Harga:</span>
+                      <span className="font-semibold text-green-600">
+                        Rp {service.price.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Fitur:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(service.features || []).slice(0, 3).map((feature, index) => (
+                        <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {feature}
+                        </span>
+                      ))}
+                      {(service.features || []).length > 3 && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          +{(service.features || []).length - 3} lainnya
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => handleEdit(service)}
+                      className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>Edit</span>
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(service)}
+                      className="flex-1 bg-red-50 text-red-600 px-3 py-2 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredServices.map((service) => {
+                const statusInfo = getStatusInfo(service.status);
+                const StatusIcon = statusInfo.icon;
                 
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Harga:</span>
-                    <span className="font-semibold text-green-600">
+                return (
+                  <tr key={service.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <img className="h-10 w-10 rounded-full object-cover" src={service.image || '/placeholder.jpg'} alt={service.name} />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{service.name}</div>
+                          <div className="text-sm text-gray-500">{service.id || '-'}</div>
+                          <div className="text-xs text-gray-500 line-clamp-1">{service.description || '-'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {service.category || 'Uncategorized'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
                       Rp {service.price.toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Durasi:</span>
-                    <span className="font-medium">{service.duration}</span>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Fitur:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {service.features.slice(0, 3).map((feature, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                        {feature}
-                      </span>
-                    ))}
-                    {service.features.length > 3 && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                        +{service.features.length - 3} lainnya
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => handleEdit(service)}
-                    className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span>Edit</span>
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(service)}
-                    className="flex-1 bg-red-50 text-red-600 px-3 py-2 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center space-x-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Hapus</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <button 
+                          onClick={() => handleEdit(service)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteConfirmation(service)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {filteredServices.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Tidak ada layanan yang ditemukan</p>
           <p className="text-gray-400 text-sm mt-2">Coba ubah filter atau tambah layanan baru</p>
         </div>
+      )}
+      </>
       )}
 
       {/* Add Service Modal */}
@@ -451,19 +608,6 @@ const ServiceManagement: React.FC = () => {
                     onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Durasi *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="contoh: 2-3 bulan"
                   />
                 </div>
                 
@@ -558,7 +702,7 @@ const ServiceManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!formData.name || !formData.description || !formData.duration}
+                disabled={!formData.name || !formData.description}
                 className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 <Save className="h-4 w-4" />
@@ -569,7 +713,7 @@ const ServiceManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Service Modal */}
+      {/* Edit Product Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -624,18 +768,6 @@ const ServiceManagement: React.FC = () => {
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Durasi *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -730,7 +862,7 @@ const ServiceManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleUpdate}
-                disabled={!formData.name || !formData.description || !formData.duration}
+                disabled={!formData.name || !formData.description}
                 className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 <Save className="h-4 w-4" />
@@ -778,7 +910,7 @@ const ServiceManagement: React.FC = () => {
                 Batal
               </button>
               <button
-                onClick={confirmDelete}
+                onClick={() => handleDelete(deletingService)}
                 className="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors"
               >
                 Hapus
