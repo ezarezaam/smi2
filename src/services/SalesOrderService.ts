@@ -38,7 +38,8 @@ export const SalesOrderService = {
             name,
             contact_person,
             email,
-            phone
+            phone,
+            address
           )
         `)
         .eq('id', id)
@@ -66,9 +67,7 @@ export const SalesOrderService = {
             name,
             description,
             price,
-            stock,
-            category,
-            group
+            stock
           ),
           uom:uom_id (
             id,

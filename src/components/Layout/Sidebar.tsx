@@ -69,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       submenu: [
         { id: 'daftar-customer', path: '/customers', label: 'Daftar Customers' },
         { id: 'sales-order', path: '/sales-order', label: 'Sales Order' },
+        { id: 'delivery-order', path: '/delivery-order', label: 'Delivery Order' },
         { id: 'credit-note', path: '/credit-note', label: 'Credit note' },
         { id: 'invoice', path: '/customer-invoice', label: 'Invoice' },
         { id: 'customer-payment', path: '/customer-payment', label: 'Payment' },
