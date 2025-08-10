@@ -1,7 +1,7 @@
 import React from 'react';
 import { SalesOrder, ORDER_STATUS, PAYMENT_STATUS } from '../../models/SalesOrder';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Filter, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Filter, Plus, Eye, Edit, Trash2, Search } from 'lucide-react';
 
 interface SalesOrderListProps {
   salesOrders: SalesOrder[];
